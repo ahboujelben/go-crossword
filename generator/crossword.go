@@ -11,22 +11,29 @@ type Crossword struct {
 	Data   []byte
 }
 
-func (c Crossword) IsFilled() bool {
-	for _, letter := range c.Data {
-		if letter == 0 {
+func (c *Crossword) FirstLetter() *CrosswordLetterRef {
+	if len(c.Data) == 0 {
+		return nil
+	}
+	return NewCrosswordLetterRef(0, c)
+}
+
+func (c *Crossword) IsFilled() bool {
+	for letter := c.FirstLetter(); letter != nil; letter = letter.Next() {
+		if !letter.IsFilled() {
 			return false
 		}
 	}
 	return true
 }
 
-func (c Crossword) Words() WordRefs {
+func (c *Crossword) Words() WordRefs {
 	words := c.HorizontalWords()
 	words = append(words, c.VerticalWords()...)
 	return words
 }
 
-func (c Crossword) HorizontalWords() []WordRef {
+func (c *Crossword) HorizontalWords() []WordRef {
 	refs := make([]WordRef, 0)
 
 	for y := 0; y < c.Height; y++ {
@@ -34,7 +41,7 @@ func (c Crossword) HorizontalWords() []WordRef {
 		for x := 0; x < c.Width; x++ {
 			if c.Data[y*c.Width+x] == '.' {
 				if len(word) > 1 {
-					refs = append(refs, NewWordRef(y*c.Width+x-len(word), len(word), Horizontal, &c))
+					refs = append(refs, NewWordRef(y*c.Width+x-len(word), len(word), Horizontal, c))
 				}
 				word = []byte{}
 			} else {
@@ -42,14 +49,14 @@ func (c Crossword) HorizontalWords() []WordRef {
 			}
 		}
 		if len(word) > 1 {
-			refs = append(refs, NewWordRef(y*c.Width+c.Width-len(word), len(word), Horizontal, &c))
+			refs = append(refs, NewWordRef(y*c.Width+c.Width-len(word), len(word), Horizontal, c))
 		}
 	}
 
 	return refs
 }
 
-func (c Crossword) VerticalWords() []WordRef {
+func (c *Crossword) VerticalWords() []WordRef {
 	refs := make([]WordRef, 0)
 
 	for x := 0; x < c.Width; x++ {
@@ -57,7 +64,7 @@ func (c Crossword) VerticalWords() []WordRef {
 		for y := 0; y < c.Height; y++ {
 			if c.Data[y*c.Width+x] == '.' {
 				if len(word) > 1 {
-					refs = append(refs, NewWordRef((y-len(word))*c.Width+x, len(word), Vertical, &c))
+					refs = append(refs, NewWordRef((y-len(word))*c.Width+x, len(word), Vertical, c))
 				}
 				word = []byte{}
 			} else {
@@ -65,14 +72,14 @@ func (c Crossword) VerticalWords() []WordRef {
 			}
 		}
 		if len(word) > 1 {
-			refs = append(refs, NewWordRef((c.Height-len(word))*c.Width+x, len(word), Vertical, &c))
+			refs = append(refs, NewWordRef((c.Height-len(word))*c.Width+x, len(word), Vertical, c))
 		}
 	}
 
 	return refs
 }
 
-func (c Crossword) Print() {
+func (c *Crossword) Print() {
 	for y := 0; y < c.Height; y++ {
 		for x := 0; x < c.Width; x++ {
 			if c.Data[y*c.Width+x] == 0 {
@@ -85,7 +92,7 @@ func (c Crossword) Print() {
 	}
 }
 
-func (c Crossword) FillFromDict(wordDict WordDict) Crossword {
+func (c *Crossword) FillFromDict(wordDict WordDict) *Crossword {
 	words := c.Words().Sorted()
 
 	currentWordIndex := 0
@@ -156,11 +163,9 @@ func (c Crossword) FillFromDict(wordDict WordDict) Crossword {
 			currentWord.SetValue([]byte(candidate))
 			valid := true
 			for _, word := range c.Words() {
-				if word.IsFilled() {
-					if !wordDict.Contains(string(word.GetValue())) {
-						valid = false
-						break
-					}
+				if word.IsFilled() && !wordDict.Contains(string(word.GetValue())) {
+					valid = false
+					break
 				}
 			}
 
@@ -186,11 +191,11 @@ func (c Crossword) FillFromDict(wordDict WordDict) Crossword {
 	return c
 }
 
-func NewCrosswordFromDict(width, height int, wordDict WordDict) Crossword {
+func NewCrosswordFromDict(width, height int, wordDict WordDict) *Crossword {
 	return NewEmptyCrossword(width, height).FillFromDict(wordDict)
 }
 
-func NewEmptyCrossword(width, height int) Crossword {
+func NewEmptyCrossword(width, height int) *Crossword {
 	if width < 1 {
 		panic(fmt.Sprintf("invalid width: %d", width))
 	}
@@ -250,7 +255,7 @@ func NewEmptyCrossword(width, height int) Crossword {
 		}
 	}
 
-	return Crossword{
+	return &Crossword{
 		Width:  width,
 		Height: height,
 		Data:   data,
