@@ -22,11 +22,15 @@ type CrosswordLetterRef struct {
 	LetterRef
 }
 
-func NewCrosswordLetterRef(pos int, crossword *Crossword) *CrosswordLetterRef {
+func NewCrosswordLetterRef(pos int, c *Crossword) *CrosswordLetterRef {
+	if len(c.Data) == 0 {
+		return nil
+	}
+
 	return &CrosswordLetterRef{
 		LetterRef: LetterRef{
 			Pos:       pos,
-			Crossword: crossword,
+			Crossword: c,
 		},
 	}
 }
@@ -60,7 +64,7 @@ func NewWordLetterRef(word *WordRef) *WordLetterRef {
 
 func (l *WordLetterRef) Next() *WordLetterRef {
 	if l.Word.Dir == Horizontal {
-		if l.Pos < l.Word.Pos+l.Word.Length-1 {
+		if l.Pos+1 < l.Word.Pos+l.Word.Length {
 			return &WordLetterRef{
 				LetterRef: LetterRef{
 					Pos:       l.Pos + 1,
@@ -72,7 +76,7 @@ func (l *WordLetterRef) Next() *WordLetterRef {
 		return nil
 	}
 
-	if l.Pos/l.Crossword.Width < l.Word.Pos/l.Crossword.Width+l.Word.Length-1 {
+	if l.Pos+l.Crossword.Width < l.Word.Pos+l.Word.Length*l.Crossword.Width {
 		return &WordLetterRef{
 			LetterRef: LetterRef{
 				Pos:       l.Pos + l.Crossword.Width,

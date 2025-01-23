@@ -3,7 +3,10 @@ package generator
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 )
+
+const blankLetter = '.'
 
 type Crossword struct {
 	Width  int
@@ -12,10 +15,11 @@ type Crossword struct {
 }
 
 func (c *Crossword) FirstLetter() *CrosswordLetterRef {
-	if len(c.Data) == 0 {
-		return nil
-	}
 	return NewCrosswordLetterRef(0, c)
+}
+
+func (c *Crossword) FirstWord() *WordRef {
+	return NewHorizontalWordRef(0, c)
 }
 
 func (c *Crossword) IsFilled() bool {
@@ -27,73 +31,30 @@ func (c *Crossword) IsFilled() bool {
 	return true
 }
 
-func (c *Crossword) Words() WordRefs {
-	words := c.HorizontalWords()
-	words = append(words, c.VerticalWords()...)
-	return words
-}
-
-func (c *Crossword) HorizontalWords() []WordRef {
-	refs := make([]WordRef, 0)
-
-	for y := 0; y < c.Height; y++ {
-		word := []byte{}
-		for x := 0; x < c.Width; x++ {
-			if c.Data[y*c.Width+x] == '.' {
-				if len(word) > 1 {
-					refs = append(refs, NewWordRef(y*c.Width+x-len(word), len(word), Horizontal, c))
-				}
-				word = []byte{}
-			} else {
-				word = append(word, c.Data[y*c.Width+x])
-			}
-		}
-		if len(word) > 1 {
-			refs = append(refs, NewWordRef(y*c.Width+c.Width-len(word), len(word), Horizontal, c))
-		}
-	}
-
-	return refs
-}
-
-func (c *Crossword) VerticalWords() []WordRef {
-	refs := make([]WordRef, 0)
-
-	for x := 0; x < c.Width; x++ {
-		word := []byte{}
-		for y := 0; y < c.Height; y++ {
-			if c.Data[y*c.Width+x] == '.' {
-				if len(word) > 1 {
-					refs = append(refs, NewWordRef((y-len(word))*c.Width+x, len(word), Vertical, c))
-				}
-				word = []byte{}
-			} else {
-				word = append(word, c.Data[y*c.Width+x])
-			}
-		}
-		if len(word) > 1 {
-			refs = append(refs, NewWordRef((c.Height-len(word))*c.Width+x, len(word), Vertical, c))
-		}
-	}
-
-	return refs
-}
-
 func (c *Crossword) Print() {
-	for y := 0; y < c.Height; y++ {
-		for x := 0; x < c.Width; x++ {
-			if c.Data[y*c.Width+x] == 0 {
-				fmt.Print("*")
-			} else {
-				fmt.Printf("%c", c.Data[y*c.Width+x])
-			}
+	for letter := c.FirstLetter(); letter != nil; letter = letter.Next() {
+		if letter.GetValue() == blankLetter {
+			fmt.Print("# ")
+		} else if letter.IsFilled() {
+			fmt.Printf("%c ", letter.GetValue())
+		} else {
+			fmt.Print("* ")
 		}
-		fmt.Println()
+		if letter.Pos%c.Width == c.Width-1 {
+			fmt.Println()
+		}
 	}
+	fmt.Println()
 }
 
 func (c *Crossword) FillFromDict(wordDict WordDict) *Crossword {
-	words := c.Words().Sorted()
+	words := make([]WordRef, 0)
+	for w := c.FirstWord(); w != nil; w = w.Next() {
+		words = append(words, *w)
+	}
+	sort.Slice(words, func(i, j int) bool {
+		return words[i].Length > words[j].Length
+	})
 
 	currentWordIndex := 0
 	totalBacktracks := 0
@@ -162,7 +123,7 @@ func (c *Crossword) FillFromDict(wordDict WordDict) *Crossword {
 			// filled with the candidate
 			currentWord.SetValue([]byte(candidate))
 			valid := true
-			for _, word := range c.Words() {
+			for word := c.FirstWord(); word != nil; word = word.Next() {
 				if word.IsFilled() && !wordDict.Contains(string(word.GetValue())) {
 					valid = false
 					break
@@ -186,7 +147,6 @@ func (c *Crossword) FillFromDict(wordDict WordDict) *Crossword {
 
 		fmt.Print("\033[H\033[2J")
 		c.Print()
-		fmt.Println()
 	}
 	return c
 }
@@ -210,12 +170,12 @@ func NewEmptyCrossword(width, height int) *Crossword {
 		if i%2 == 1 {
 			for j := 0; j < width; j++ {
 				if j%2 == 1 {
-					data[i*width+j] = '.'
+					data[i*width+j] = blankLetter
 				}
 			}
 		} else {
 			if i != 0 && i != height-1 {
-				data[i*width+i] = '.'
+				data[i*width+i] = blankLetter
 			}
 		}
 		if width > 7 && (i == 0 || i == height-1) {
@@ -232,10 +192,10 @@ func NewEmptyCrossword(width, height int) *Crossword {
 				15: 5,
 			}
 			if rand.Float64() < chance[width] {
-				data[i*width+rand.Intn(width-offset[width]*2)+offset[width]] = '.'
+				data[i*width+rand.Intn(width-offset[width]*2)+offset[width]] = blankLetter
 			}
 			if rand.Float64() < chance[width] {
-				data[(rand.Intn(height-offset[width]*2)+offset[width])*width+i] = '.'
+				data[(rand.Intn(height-offset[width]*2)+offset[width])*width+i] = blankLetter
 			}
 		}
 	}
@@ -243,14 +203,14 @@ func NewEmptyCrossword(width, height int) *Crossword {
 	// replace any single letter words with empty space
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			if data[y*width+x] == '.' {
+			if data[y*width+x] == blankLetter {
 				continue
 			}
-			if (x == 0 || data[y*width+x-1] == '.') &&
-				(x == width-1 || data[y*width+x+1] == '.') &&
-				(y == 0 || data[(y-1)*width+x] == '.') &&
-				(y == height-1 || data[(y+1)*width+x] == '.') {
-				data[y*width+x] = '.'
+			if (x == 0 || data[y*width+x-1] == blankLetter) &&
+				(x == width-1 || data[y*width+x+1] == blankLetter) &&
+				(y == 0 || data[(y-1)*width+x] == blankLetter) &&
+				(y == height-1 || data[(y+1)*width+x] == blankLetter) {
+				data[y*width+x] = blankLetter
 			}
 		}
 	}
@@ -277,7 +237,7 @@ func NewCrosswordFromString(width, height int, content string) Crossword {
 	data := make([]byte, len(content))
 
 	for i := range content {
-		if content[i] != '.' && (content[i] < 'a' || content[i] > 'z') {
+		if content[i] != blankLetter && (content[i] < 'a' || content[i] > 'z') {
 			panic(fmt.Sprintf("invalid character at position %d: %c", i, content[i]))
 		}
 		data[i] = content[i]
