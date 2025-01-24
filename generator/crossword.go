@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -49,25 +50,35 @@ func (c *Crossword) Print() {
 	fmt.Println()
 }
 
-func (c *Crossword) FillFromDict(wordDict WordDict) *Crossword {
-	var wg sync.WaitGroup
-	var solution *Crossword
-	found := false
+func NewCrosswordFromDict(width, height int, wordDict WordDict) *Crossword {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	for i := 0; i < 10; i++ {
+	var wg sync.WaitGroup
+	filledCrossword := make(chan *Crossword, 1)
+
+	numThreads := 1
+	for i := 0; i < numThreads; i++ {
 		wg.Add(1)
+		// threadNumber := i
 		go func() {
 			defer wg.Done()
-			clone := c.Clone()
-			clone.solve(wordDict, &solution, &found)
+			defer cancel()
+			// fmt.Printf("Thread %d started", threadNumber)
+			// fmt.Println()
+			crossword := NewEmptyCrossword(width, height)
+			crossword.solve(ctx, wordDict, filledCrossword)
+			// fmt.Printf("Thread %d ended", threadNumber)
+			// fmt.Println()
 		}()
 	}
 
 	wg.Wait()
-	return solution
+
+	return <-filledCrossword
 }
 
-func (c *Crossword) solve(wordDict WordDict, solution **Crossword, found *bool) {
+func (c *Crossword) solve(ctx context.Context, wordDict WordDict, filledCrossword chan *Crossword) {
 	words := make([]WordRef, 0)
 	for w := c.FirstWord(); w != nil; w = w.Next() {
 		words = append(words, *w)
@@ -76,116 +87,96 @@ func (c *Crossword) solve(wordDict WordDict, solution **Crossword, found *bool) 
 		return words[i].Length > words[j].Length
 	})
 
-	solve := func() {
-		currentWordIndex := 0
-		totalBacktracks := 0
-		backtrackSteps := 3
+	currentWordIndex := 0
+	totalBacktracks := 0
+	backtrackSteps := 3
 
-		type StackElement struct {
-			index int
-			word  []byte
+	type StackElement struct {
+		index int
+		word  []byte
+	}
+	stack := []StackElement{}
+
+	backtrack := func() {
+		totalBacktracks++
+		if totalBacktracks%10 == 0 {
+			backtrackSteps += 3
 		}
-		stack := []StackElement{}
-
-		backtrack := func() {
-			totalBacktracks++
-			if totalBacktracks%10 == 0 {
-				backtrackSteps += 3
-			}
-			for i := 0; i < backtrackSteps; i++ {
-				prevWord := stack[len(stack)-1]
-				stack = stack[:len(stack)-1]
-				currentWordIndex = prevWord.index
-				words[currentWordIndex].SetValue(prevWord.word)
-				if len(stack) == 0 {
-					backtrackSteps = 3
-					totalBacktracks = 0
-					break
-				}
-			}
-		}
-
-		for {
-			if *found {
-				return
-			}
-
-			if c.IsFilled() {
-				if !*found {
-					*found = true
-					*solution = c
-				}
+		for i := 0; i < backtrackSteps; i++ {
+			prevWord := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			currentWordIndex = prevWord.index
+			words[currentWordIndex].SetValue(prevWord.word)
+			if len(stack) == 0 {
+				backtrackSteps = 3
+				totalBacktracks = 0
 				break
 			}
+		}
+	}
 
-			currentWord := words[currentWordIndex]
-			currentWordValue := currentWord.GetValue()
+	for {
+		// abort if the context is cancelled - a solution has already been found
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 
-			if currentWord.IsFilled() {
-				currentWordIndex++
-				continue
+		if c.IsFilled() {
+			// a solution has been found
+			filledCrossword <- c
+			return
+		}
+
+		currentWord := words[currentWordIndex]
+		currentWordValue := currentWord.GetValue()
+
+		if currentWord.IsFilled() {
+			currentWordIndex++
+			continue
+		}
+
+		candidates := wordDict.Candidates(currentWordValue)
+
+		if candidates.Len() == 0 {
+			backtrack()
+			continue
+		}
+
+		candidateFound := false
+		for candidates.Len() > 0 {
+			e := candidates.Front()
+			chosenIndex := rand.Intn(candidates.Len())
+			for i := 0; i < chosenIndex; i++ {
+				e = e.Next()
 			}
+			candidate := e.Value.(string)
 
-			candidates := wordDict.Candidates(currentWordValue)
-
-			if candidates.Len() == 0 {
-				backtrack()
-				continue
-			}
-
-			candidateFound := false
-			for candidates.Len() > 0 {
-				if *found {
-					return
-				}
-				e := candidates.Front()
-				chosenIndex := rand.Intn(candidates.Len())
-				for i := 0; i < chosenIndex; i++ {
-					e = e.Next()
-				}
-				candidate := e.Value.(string)
-
-				currentWord.SetValue([]byte(candidate))
-				valid := true
-				for word := c.FirstWord(); word != nil; word = word.Next() {
-					if word.IsFilled() && !wordDict.Contains(string(word.GetValue())) {
-						valid = false
-						break
-					}
-				}
-
-				if valid {
-					candidateFound = true
+			currentWord.SetValue([]byte(candidate))
+			valid := true
+			for word := c.FirstWord(); word != nil; word = word.Next() {
+				if word.IsFilled() && !wordDict.Contains(string(word.GetValue())) {
+					valid = false
 					break
 				}
 			}
 
-			if !candidateFound {
-				currentWord.SetValue(currentWordValue)
-				backtrack()
-				continue
+			if valid {
+				candidateFound = true
+				break
 			}
-
-			stack = append(stack, StackElement{index: currentWordIndex, word: currentWordValue})
-			currentWordIndex++
 		}
+
+		if !candidateFound {
+			currentWord.SetValue(currentWordValue)
+			backtrack()
+			continue
+		}
+
+		stack = append(stack, StackElement{index: currentWordIndex, word: currentWordValue})
+		currentWordIndex++
 	}
-
-	solve()
-}
-
-func (c *Crossword) Clone() *Crossword {
-	dataCopy := make([]byte, len(c.Data))
-	copy(dataCopy, c.Data)
-	return &Crossword{
-		Width:  c.Width,
-		Height: c.Height,
-		Data:   dataCopy,
-	}
-}
-
-func NewCrosswordFromDict(width, height int, wordDict WordDict) *Crossword {
-	return NewEmptyCrossword(width, height).FillFromDict(wordDict)
 }
 
 func NewEmptyCrossword(width, height int) *Crossword {
@@ -259,16 +250,17 @@ func NewCrosswordFromString(width, height int, content string) Crossword {
 	if width < 1 {
 		panic(fmt.Sprintf("invalid width: %d", width))
 	}
+
 	if height < 1 {
 		panic(fmt.Sprintf("invalid height: %d", height))
 	}
+
 	length := width * height
 	if len(content) != length {
-		panic(fmt.Sprintf("expected length %d but got %d", length, len(content)))
+		panic(fmt.Sprintf("unexpected content length (expected=%d,found=%d)", length, len(content)))
 	}
 
 	data := make([]byte, len(content))
-
 	for i := range content {
 		if content[i] != blankLetter && (content[i] < 'a' || content[i] > 'z') {
 			panic(fmt.Sprintf("invalid character at position %d: %c", i, content[i]))
