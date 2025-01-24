@@ -2,9 +2,9 @@ package generator
 
 import (
 	"bufio"
-	"container/list"
 	"fmt"
 	"os"
+	"slices"
 )
 
 type WordDict struct {
@@ -59,24 +59,19 @@ func (wd WordDict) Contains(word string) bool {
 	return exists
 }
 
-func (wd WordDict) Candidates(word []byte) *list.List {
-	wordSets := list.New()
-	for _, word := range wd.LengthMapping[len(word)] {
-		wordSets.PushBack(word)
-	}
+func (wd WordDict) Candidates(word []byte) []string {
+	candidates := make([]string, len(wd.LengthMapping[len(word)]))
+	copy(candidates, wd.LengthMapping[len(word)])
 
 	for i, letter := range word {
 		if letter != 0 {
 			key := WordDictKey{letter: letter, pos: i}
 			currentSet := wd.LetterMapping[key]
-			for e := wordSets.Front(); e != nil; {
-				next := e.Next()
-				if _, exists := currentSet[e.Value.(string)]; !exists {
-					wordSets.Remove(e)
-				}
-				e = next
-			}
+			candidates = slices.DeleteFunc(candidates, func(e string) bool {
+				_, exists := currentSet[e]
+				return !exists
+			})
 		}
 	}
-	return wordSets
+	return candidates
 }

@@ -57,7 +57,7 @@ func NewCrosswordFromDict(width, height int, wordDict WordDict) *Crossword {
 	var wg sync.WaitGroup
 	filledCrossword := make(chan *Crossword, 1)
 
-	numThreads := 1
+	numThreads := 10
 	for i := 0; i < numThreads; i++ {
 		wg.Add(1)
 		// threadNumber := i
@@ -139,19 +139,17 @@ func (c *Crossword) solve(ctx context.Context, wordDict WordDict, filledCrosswor
 
 		candidates := wordDict.Candidates(currentWordValue)
 
-		if candidates.Len() == 0 {
+		if len(candidates) == 0 {
 			backtrack()
 			continue
 		}
 
 		candidateFound := false
-		for candidates.Len() > 0 {
-			e := candidates.Front()
-			chosenIndex := rand.Intn(candidates.Len())
-			for i := 0; i < chosenIndex; i++ {
-				e = e.Next()
-			}
-			candidate := e.Value.(string)
+		for len(candidates) > 0 {
+			chosenIndex := rand.Intn(len(candidates))
+			candidate := candidates[chosenIndex]
+			candidates[chosenIndex] = candidates[len(candidates)-1]
+			candidates = candidates[:len(candidates)-1]
 
 			currentWord.SetValue([]byte(candidate))
 			valid := true
