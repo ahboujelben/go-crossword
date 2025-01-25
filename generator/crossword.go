@@ -57,7 +57,7 @@ func NewCrosswordFromDict(width, height int, wordDict WordDict) *Crossword {
 	var wg sync.WaitGroup
 	filledCrossword := make(chan *Crossword, 1)
 
-	numThreads := 10
+	numThreads := 100
 	for i := 0; i < numThreads; i++ {
 		wg.Add(1)
 		// threadNumber := i
@@ -78,6 +78,8 @@ func NewCrosswordFromDict(width, height int, wordDict WordDict) *Crossword {
 	return <-filledCrossword
 }
 
+// try to fill the crossword word by word, starting with the longest ones.
+// if stuck or we ended up creating non-existent words, backtrack and try again.
 func (c *Crossword) solve(ctx context.Context, wordDict WordDict, filledCrossword chan *Crossword) {
 	words := make([]WordRef, 0)
 	for w := c.FirstWord(); w != nil; w = w.Next() {
@@ -91,11 +93,11 @@ func (c *Crossword) solve(ctx context.Context, wordDict WordDict, filledCrosswor
 	totalBacktracks := 0
 	backtrackSteps := 3
 
-	type StackElement struct {
+	type wordStack struct {
 		index int
 		word  []byte
 	}
-	stack := []StackElement{}
+	stack := []wordStack{}
 
 	backtrack := func() {
 		totalBacktracks++
@@ -123,8 +125,8 @@ func (c *Crossword) solve(ctx context.Context, wordDict WordDict, filledCrosswor
 		default:
 		}
 
+		// if the whole crossword is filled then a solution has been found
 		if c.IsFilled() {
-			// a solution has been found
 			filledCrossword <- c
 			return
 		}
@@ -133,46 +135,22 @@ func (c *Crossword) solve(ctx context.Context, wordDict WordDict, filledCrosswor
 		currentWordValue := currentWord.GetValue()
 
 		if currentWord.IsFilled() {
+			if !wordDict.Contains(string(currentWordValue)) {
+				backtrack()
+				continue
+			}
 			currentWordIndex++
 			continue
 		}
 
 		candidates := wordDict.Candidates(currentWordValue)
-
 		if len(candidates) == 0 {
 			backtrack()
 			continue
 		}
 
-		candidateFound := false
-		for len(candidates) > 0 {
-			chosenIndex := rand.Intn(len(candidates))
-			candidate := candidates[chosenIndex]
-			candidates[chosenIndex] = candidates[len(candidates)-1]
-			candidates = candidates[:len(candidates)-1]
-
-			currentWord.SetValue([]byte(candidate))
-			valid := true
-			for word := c.FirstWord(); word != nil; word = word.Next() {
-				if word.IsFilled() && !wordDict.Contains(string(word.GetValue())) {
-					valid = false
-					break
-				}
-			}
-
-			if valid {
-				candidateFound = true
-				break
-			}
-		}
-
-		if !candidateFound {
-			currentWord.SetValue(currentWordValue)
-			backtrack()
-			continue
-		}
-
-		stack = append(stack, StackElement{index: currentWordIndex, word: currentWordValue})
+		stack = append(stack, wordStack{index: currentWordIndex, word: currentWordValue})
+		currentWord.SetValue([]byte(candidates[rand.Intn(len(candidates))]))
 		currentWordIndex++
 	}
 }
