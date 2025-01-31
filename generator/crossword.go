@@ -89,33 +89,7 @@ func (c *Crossword) solve(ctx context.Context, wordDict WordDict, filledCrosswor
 		return words[i].Length > words[j].Length
 	})
 
-	currentWordIndex := 0
-	totalBacktracks := 0
-	backtrackSteps := 3
-
-	type wordStack struct {
-		index int
-		word  []byte
-	}
-	stack := []wordStack{}
-
-	backtrack := func() {
-		totalBacktracks++
-		if totalBacktracks%10 == 0 {
-			backtrackSteps += 3
-		}
-		for i := 0; i < backtrackSteps; i++ {
-			prevWord := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			currentWordIndex = prevWord.index
-			words[currentWordIndex].SetValue(prevWord.word)
-			if len(stack) == 0 {
-				backtrackSteps = 3
-				totalBacktracks = 0
-				break
-			}
-		}
-	}
+	crawler := newCrosswordCrawler(words)
 
 	for {
 		// abort if the context is cancelled - a solution has already been found
@@ -131,27 +105,27 @@ func (c *Crossword) solve(ctx context.Context, wordDict WordDict, filledCrosswor
 			return
 		}
 
-		currentWord := words[currentWordIndex]
+		currentWord := words[crawler.currentWordIndex]
 		currentWordValue := currentWord.GetValue()
 
 		if currentWord.IsFilled() {
 			if !wordDict.Contains(string(currentWordValue)) {
-				backtrack()
+				crawler.backtrack()
 				continue
 			}
-			currentWordIndex++
+			crawler.currentWordIndex++
 			continue
 		}
 
 		candidates := wordDict.Candidates(currentWordValue)
 		if len(candidates) == 0 {
-			backtrack()
+			crawler.backtrack()
 			continue
 		}
 
-		stack = append(stack, wordStack{index: currentWordIndex, word: currentWordValue})
+		crawler.stack = append(crawler.stack, wordStack{index: crawler.currentWordIndex, word: currentWordValue})
 		currentWord.SetValue([]byte(candidates[rand.Intn(len(candidates))]))
-		currentWordIndex++
+		crawler.currentWordIndex++
 	}
 }
 
@@ -167,35 +141,18 @@ func NewEmptyCrossword(width, height int) *Crossword {
 
 	// create blank squares based on specific conditions
 	for i := 0; i < height; i++ {
-		if i%2 == 1 {
-			for j := 0; j < width; j++ {
-				if j%2 == 1 {
-					data[i*width+j] = blankLetter
-				}
-			}
-		} else {
-			if i != 0 && i != height-1 {
-				data[i*width+i] = blankLetter
+		for j := 0; j < width; j++ {
+			if i%2 == 1 && (i+j)%2 == 0 {
+				data[i*width+j] = blankLetter
 			}
 		}
-		if width > 7 && (i == 0 || i == height-1) {
-			chance := map[int]float64{
-				9:  0.3,
-				11: 0.6,
-				13: 0.9,
-				15: 1,
+
+		if i%2 == 0 && width > 7 {
+			if rand.Float64() < 0.75 {
+				data[i*width+rand.Intn(width)] = blankLetter
 			}
-			offset := map[int]int{
-				9:  3,
-				11: 3,
-				13: 3,
-				15: 5,
-			}
-			if rand.Float64() < chance[width] {
-				data[i*width+rand.Intn(width-offset[width]*2)+offset[width]] = blankLetter
-			}
-			if rand.Float64() < chance[width] {
-				data[(rand.Intn(height-offset[width]*2)+offset[width])*width+i] = blankLetter
+			if rand.Float64() < 0.75 {
+				data[i+rand.Intn(height)*width] = blankLetter
 			}
 		}
 	}
