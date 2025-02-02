@@ -7,15 +7,15 @@ import (
 	"sync"
 )
 
-const blank = '.'
+const Blank = '.'
 
 type Crossword struct {
-	Width  int
-	Height int
-	data   []byte
+	columns int
+	rows    int
+	data    []byte
 }
 
-func NewCrossword(width, height int, wordDict WordDict) *Crossword {
+func NewCrossword(columns, rows int, wordDict WordDict) *Crossword {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -33,7 +33,7 @@ func NewCrossword(width, height int, wordDict WordDict) *Crossword {
 		go func() {
 			defer wg.Done()
 			defer cancel()
-			generateCrossword(ctx, width, height, wordDict, solvedCrossword)
+			generateCrossword(ctx, columns, rows, wordDict, solvedCrossword)
 		}()
 	}
 
@@ -42,74 +42,69 @@ func NewCrossword(width, height int, wordDict WordDict) *Crossword {
 	return <-solvedCrossword
 }
 
-func NewEmptyCrossword(width, height int) *Crossword {
-	if width < 1 {
-		panic(fmt.Sprintf("invalid width: %d", width))
+func NewEmptyCrossword(columns, rows int) *Crossword {
+	if columns < 1 {
+		panic(fmt.Sprintf("invalid columns: %d", columns))
 	}
-	if height < 1 {
-		panic(fmt.Sprintf("invalid height: %d", height))
+	if rows < 1 {
+		panic(fmt.Sprintf("invalid rows: %d", rows))
 	}
 
-	data := make([]byte, width*height)
+	data := make([]byte, columns*rows)
 
 	// create blank squares based on specific conditions
-	for i := 0; i < height; i++ {
-		for j := 0; j < width; j++ {
+	for i := 0; i < rows; i++ {
+		for j := 0; j < columns; j++ {
 			if i%2 == 1 && (i+j)%2 == 0 {
-				data[i*width+j] = blank
+				data[i*columns+j] = Blank
+			}
+			if i == 0 && j%2 == 0 && rand.Float64() < 0.75 {
+				data[j+rand.Intn(rows)*columns] = Blank
 			}
 		}
 
-		if i%2 == 0 && width > 7 {
+		if i%2 == 0 && columns > 7 {
 			if rand.Float64() < 0.75 {
-				data[i*width+rand.Intn(width)] = blank
-			}
-			if rand.Float64() < 0.75 {
-				data[i+rand.Intn(height)*width] = blank
+				data[i*columns+rand.Intn(columns)] = Blank
 			}
 		}
 	}
 
 	// replace any single letter words with empty space
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			if data[y*width+x] == blank {
+	for y := 0; y < rows; y++ {
+		for x := 0; x < columns; x++ {
+			if data[y*columns+x] == Blank {
 				continue
 			}
-			if (x == 0 || data[y*width+x-1] == blank) &&
-				(x == width-1 || data[y*width+x+1] == blank) &&
-				(y == 0 || data[(y-1)*width+x] == blank) &&
-				(y == height-1 || data[(y+1)*width+x] == blank) {
-				data[y*width+x] = blank
+			if (x == 0 || data[y*columns+x-1] == Blank) &&
+				(x == columns-1 || data[y*columns+x+1] == Blank) &&
+				(y == 0 || data[(y-1)*columns+x] == Blank) &&
+				(y == rows-1 || data[(y+1)*columns+x] == Blank) {
+				data[y*columns+x] = Blank
 			}
 		}
 	}
 
 	return &Crossword{
-		Width:  width,
-		Height: height,
-		data:   data,
+		columns: columns,
+		rows:    rows,
+		data:    data,
 	}
 }
 
-func (c *Crossword) Print() {
-	fmt.Println()
-	for letter := CrosswordLetter(c); letter != nil; letter = letter.Next() {
-		if letter.GetValue() == blank {
-			fmt.Print("# ")
-		} else if letter.IsEmpty() {
-			fmt.Print("* ")
-		} else {
-			fmt.Printf("%c ", letter.GetValue())
-		}
-		if letter.Pos%c.Width == c.Width-1 {
-			fmt.Println()
-		}
-	}
-	fmt.Println()
+func (c *Crossword) Print(formatter func(c *Crossword)) {
+	formatter(c)
 }
 
-func (c *Crossword) IsFilled() bool {
+func (c *Crossword) Columns() int {
+	return c.columns
+}
+
+func (c *Crossword) Rows() int {
+	return c.rows
+}
+
+func (c *Crossword) isFilled() bool {
 	for letter := CrosswordLetter(c); letter != nil; letter = letter.Next() {
 		if letter.IsEmpty() {
 			return false

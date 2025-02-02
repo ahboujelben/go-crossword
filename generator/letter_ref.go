@@ -33,6 +33,15 @@ func CrosswordLetter(c *Crossword) *CrosswordLetterRef {
 	}
 }
 
+func CrosswordLetterAt(c *Crossword, row, column int) *CrosswordLetterRef {
+	return &CrosswordLetterRef{
+		LetterRef: LetterRef{
+			Pos:       row*c.columns + column,
+			crossword: c,
+		},
+	}
+}
+
 func (l *CrosswordLetterRef) Next() *CrosswordLetterRef {
 	if l.Pos+1 < len(l.crossword.data) {
 		return &CrosswordLetterRef{
@@ -74,10 +83,10 @@ func (l *WordLetterRef) Next() *WordLetterRef {
 		return nil
 	}
 
-	if l.Pos+l.crossword.Width < l.word.Pos+l.word.Length*l.crossword.Width {
+	if l.Pos+l.crossword.columns < l.word.Pos+l.word.Length*l.crossword.columns {
 		return &WordLetterRef{
 			LetterRef: LetterRef{
-				Pos:       l.Pos + l.crossword.Width,
+				Pos:       l.Pos + l.crossword.columns,
 				crossword: l.crossword,
 			},
 			word: l.word,

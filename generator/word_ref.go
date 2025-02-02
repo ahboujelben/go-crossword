@@ -33,7 +33,7 @@ func horizontalWord(pos int, c *Crossword) *WordRef {
 				wordStart = i
 			}
 			wordLength++
-			if (i+1)%c.Width == 0 || c.data[i+1] == '.' {
+			if (i+1)%c.columns == 0 || c.data[i+1] == '.' {
 				if wordLength > 1 {
 					return &WordRef{
 						Pos:       wordStart,
@@ -61,7 +61,7 @@ func verticalWord(pos int, c *Crossword) *WordRef {
 				wordStart = i
 			}
 			wordLength++
-			if i+c.Width >= len(c.data) || c.data[i+c.Width] == '.' {
+			if i+c.columns >= len(c.data) || c.data[i+c.columns] == '.' {
 				if wordLength > 1 {
 					return &WordRef{
 						Pos:       wordStart,
@@ -76,10 +76,10 @@ func verticalWord(pos int, c *Crossword) *WordRef {
 		}
 		if i == len(c.data)-1 {
 			break
-		} else if i+c.Width >= len(c.data) {
-			i = i%c.Width + 1
+		} else if i+c.columns >= len(c.data) {
+			i = i%c.columns + 1
 		} else {
-			i += c.Width
+			i += c.columns
 		}
 	}
 	return nil
@@ -93,7 +93,7 @@ func (w *WordRef) Next() *WordRef {
 		}
 		return verticalWord(0, w.crossword)
 	}
-	return verticalWord(w.Pos+(w.Length-1)*w.crossword.Width, w.crossword)
+	return verticalWord(w.Pos+(w.Length-1)*w.crossword.columns, w.crossword)
 }
 
 func (w *WordRef) GetValue() []byte {

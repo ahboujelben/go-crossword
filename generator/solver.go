@@ -3,14 +3,15 @@ package generator
 import (
 	"context"
 	"math/rand"
+	"slices"
 	"sort"
 )
 
 // starting with an empty crossword, try to fill the crossword word by word,
 // starting with the longest ones. if stuck or we ended up creating
 // non-existent words, backtrack and try again.
-func generateCrossword(ctx context.Context, width, height int, wordDict WordDict, solvedCrossword chan *Crossword) {
-	crossword := NewEmptyCrossword(width, height)
+func generateCrossword(ctx context.Context, columns, rows int, wordDict WordDict, solvedCrossword chan *Crossword) {
+	crossword := NewEmptyCrossword(columns, rows)
 	crawler := newCrosswordCrawler(crossword)
 
 	for {
@@ -22,7 +23,7 @@ func generateCrossword(ctx context.Context, width, height int, wordDict WordDict
 		}
 
 		// if the whole crossword is filled then a solution has been found
-		if crossword.IsFilled() {
+		if crossword.isFilled() {
 			solvedCrossword <- crossword
 			return
 		}
@@ -39,7 +40,15 @@ func generateCrossword(ctx context.Context, width, height int, wordDict WordDict
 			continue
 		}
 
+		// find possible candidates for the current word based on the current
+		// state of the crossword
 		candidates := wordDict.Candidates(currentWordValue)
+		// exclude words that are already in the crossword
+		candidates = slices.DeleteFunc(candidates, func(e int) bool {
+			_, exists := crawler.stackSet[wordDict.allWords[e]]
+			return exists
+		})
+
 		if len(candidates) == 0 {
 			crawler.backtrack()
 			continue
@@ -54,6 +63,7 @@ func generateCrossword(ctx context.Context, width, height int, wordDict WordDict
 type crosswordCrawler struct {
 	words            []WordRef
 	stack            []wordStack
+	stackSet         map[string]struct{}
 	currentWordIndex int
 	totalBacktracks  int
 	backtrackSteps   int
@@ -75,6 +85,7 @@ func newCrosswordCrawler(c *Crossword) *crosswordCrawler {
 	return &crosswordCrawler{
 		words:            words,
 		stack:            []wordStack{},
+		stackSet:         make(map[string]struct{}),
 		currentWordIndex: 0,
 		totalBacktracks:  0,
 		backtrackSteps:   3,
@@ -83,6 +94,7 @@ func newCrosswordCrawler(c *Crossword) *crosswordCrawler {
 
 func (c *crosswordCrawler) pushToStack(value []byte) {
 	c.stack = append(c.stack, wordStack{index: c.currentWordIndex, word: value})
+	c.stackSet[string(value)] = struct{}{}
 }
 
 func (c *crosswordCrawler) currentWord() *WordRef {
@@ -101,6 +113,7 @@ func (c *crosswordCrawler) backtrack() {
 	for i := 0; i < c.backtrackSteps; i++ {
 		prevWord := c.stack[len(c.stack)-1]
 		c.stack = c.stack[:len(c.stack)-1]
+		delete(c.stackSet, string(prevWord.word))
 		c.currentWordIndex = prevWord.index
 		c.words[c.currentWordIndex].SetValue(prevWord.word)
 		if len(c.stack) == 0 {
