@@ -15,7 +15,14 @@ type Crossword struct {
 	data    []byte
 }
 
-func NewCrossword(columns, rows int, wordDict WordDict) *Crossword {
+type CrosswordConfig struct {
+	Columns     int
+	Rows        int
+	Concurrency int
+	WordDict    WordDict
+}
+
+func NewCrossword(config CrosswordConfig) *Crossword {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -27,13 +34,12 @@ func NewCrossword(columns, rows int, wordDict WordDict) *Crossword {
 	// tried. To speed up the process, we run multiple goroutines to generate
 	// crosswords and return the first one that is solved. This typically takes
 	// less than a second to generate a 13x13 crossword.
-	numThreads := 100
-	for i := 0; i < numThreads; i++ {
+	for i := 0; i < config.Concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			defer cancel()
-			generateCrossword(ctx, columns, rows, wordDict, solvedCrossword)
+			generateCrossword(ctx, config.Columns, config.Rows, config.WordDict, solvedCrossword)
 		}()
 	}
 

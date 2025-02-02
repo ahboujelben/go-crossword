@@ -3,31 +3,32 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/ahboujelben/crossword/cli/format"
 	"github.com/ahboujelben/crossword/generator"
 )
 
 func main() {
-	config, err := parseArguments()
+	parseResult, err := parseArguments()
 	if err != nil {
 		return
 	}
 
-	wordDict := generator.NewWordDict("data/words.txt")
-	crossword := generator.NewCrossword(config.columns, config.rows, wordDict)
-	crossword.Print(config.formatter)
+	crossword := generator.NewCrossword(parseResult.config)
+	crossword.Print(parseResult.formatter)
 }
 
-type config struct {
-	columns   int
-	rows      int
+type ParseResult struct {
+	config    generator.CrosswordConfig
 	formatter func(c *generator.Crossword)
 }
 
-func parseArguments() (*config, error) {
+func parseArguments() (*ParseResult, error) {
 	columns := flag.Int("columns", 13, "number of columns in the crossword (valid values: [2, 13])")
 	rows := flag.Int("rows", 13, "number of rows in the crossword (valid values: [2, 13])")
+	concurrency := flag.Int("concurrency", 100, "number of goroutines to use (valid values: [1, 10000])")
+	dictionaryPath := flag.String("dictionaryPath", "data/words.txt", "path to the dictionary file with the words to be used to fill the crossword")
 	isCompact := flag.Bool("compact", false, "prints each letter using one character")
 	flag.Parse()
 
@@ -36,14 +37,29 @@ func parseArguments() (*config, error) {
 		return nil, fmt.Errorf("invalid dimensions")
 	}
 
+	if *concurrency < 1 || *concurrency > 10000 {
+		flag.Usage()
+		return nil, fmt.Errorf("invalid number of goroutines")
+	}
+
+	if _, err := os.Stat(*dictionaryPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("dictionary file not found: %s", *dictionaryPath)
+	}
+
 	formatter := format.StandardFormat
 	if *isCompact {
 		formatter = format.CompactFormat
 	}
 
-	return &config{
-		columns:   *columns,
-		rows:      *rows,
+	wordDict := generator.NewWordDict(*dictionaryPath)
+
+	return &ParseResult{
+		config: generator.CrosswordConfig{
+			Columns:     *columns,
+			Rows:        *rows,
+			Concurrency: *concurrency,
+			WordDict:    wordDict,
+		},
 		formatter: formatter,
 	}, nil
 }
