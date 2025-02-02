@@ -45,7 +45,7 @@ func generateCrossword(ctx context.Context, columns, rows int, wordDict WordDict
 		candidates := wordDict.Candidates(currentWordValue)
 		// exclude words that are already in the crossword
 		candidates = slices.DeleteFunc(candidates, func(e int) bool {
-			_, exists := crawler.stackSet[wordDict.allWords[e]]
+			_, exists := crawler.wordsSoFar[wordDict.allWords[e]]
 			return exists
 		})
 
@@ -54,8 +54,10 @@ func generateCrossword(ctx context.Context, columns, rows int, wordDict WordDict
 			continue
 		}
 
+		candidate := wordDict.allWords[candidates[rand.Intn(len(candidates))]]
 		crawler.pushToStack(currentWordValue)
-		currentWord.SetValue([]byte(wordDict.allWords[candidates[rand.Intn(len(candidates))]]))
+		currentWord.SetValue([]byte(candidate))
+		crawler.storeWord(candidate)
 		crawler.goToNextWord()
 	}
 }
@@ -63,7 +65,7 @@ func generateCrossword(ctx context.Context, columns, rows int, wordDict WordDict
 type crosswordCrawler struct {
 	words            []WordRef
 	stack            []wordStack
-	stackSet         map[string]struct{}
+	wordsSoFar       map[string]struct{}
 	currentWordIndex int
 	totalBacktracks  int
 	backtrackSteps   int
@@ -85,7 +87,7 @@ func newCrosswordCrawler(c *Crossword) *crosswordCrawler {
 	return &crosswordCrawler{
 		words:            words,
 		stack:            []wordStack{},
-		stackSet:         make(map[string]struct{}),
+		wordsSoFar:       make(map[string]struct{}),
 		currentWordIndex: 0,
 		totalBacktracks:  0,
 		backtrackSteps:   3,
@@ -94,7 +96,10 @@ func newCrosswordCrawler(c *Crossword) *crosswordCrawler {
 
 func (c *crosswordCrawler) pushToStack(value []byte) {
 	c.stack = append(c.stack, wordStack{index: c.currentWordIndex, word: value})
-	c.stackSet[string(value)] = struct{}{}
+}
+
+func (c *crosswordCrawler) storeWord(value string) {
+	c.wordsSoFar[value] = struct{}{}
 }
 
 func (c *crosswordCrawler) currentWord() *WordRef {
@@ -113,7 +118,8 @@ func (c *crosswordCrawler) backtrack() {
 	for i := 0; i < c.backtrackSteps; i++ {
 		prevWord := c.stack[len(c.stack)-1]
 		c.stack = c.stack[:len(c.stack)-1]
-		delete(c.stackSet, string(prevWord.word))
+		wordToBeDeleted := string(c.words[prevWord.index].GetValue())
+		delete(c.wordsSoFar, wordToBeDeleted)
 		c.currentWordIndex = prevWord.index
 		c.words[c.currentWordIndex].SetValue(prevWord.word)
 		if len(c.stack) == 0 {
