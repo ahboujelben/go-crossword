@@ -1,46 +1,44 @@
 package generator
 
 type LetterRef struct {
-	Pos int
-
-	Crossword *Crossword
-}
-
-func (l *LetterRef) IsFilled() bool {
-	return l.Crossword.Data[l.Pos] != 0
+	Pos       int
+	crossword *Crossword
 }
 
 func (l *LetterRef) GetValue() byte {
-	return l.Crossword.Data[l.Pos]
+	return l.crossword.data[l.Pos]
 }
 
 func (l *LetterRef) SetValue(value byte) {
-	l.Crossword.Data[l.Pos] = value
+	l.crossword.data[l.Pos] = value
+}
+
+func (l *LetterRef) IsEmpty() bool {
+	return l.crossword.data[l.Pos] == 0
 }
 
 type CrosswordLetterRef struct {
 	LetterRef
 }
 
-func NewCrosswordLetterRef(pos int, c *Crossword) *CrosswordLetterRef {
-	if len(c.Data) == 0 {
+func CrosswordLetter(c *Crossword) *CrosswordLetterRef {
+	if len(c.data) == 0 {
 		return nil
 	}
 
 	return &CrosswordLetterRef{
 		LetterRef: LetterRef{
-			Pos:       pos,
-			Crossword: c,
+			crossword: c,
 		},
 	}
 }
 
 func (l *CrosswordLetterRef) Next() *CrosswordLetterRef {
-	if l.Pos+1 < len(l.Crossword.Data) {
+	if l.Pos+1 < len(l.crossword.data) {
 		return &CrosswordLetterRef{
 			LetterRef: LetterRef{
 				Pos:       l.Pos + 1,
-				Crossword: l.Crossword,
+				crossword: l.crossword,
 			},
 		}
 	}
@@ -49,40 +47,40 @@ func (l *CrosswordLetterRef) Next() *CrosswordLetterRef {
 
 type WordLetterRef struct {
 	LetterRef
-	Word *WordRef
+	word *WordRef
 }
 
-func NewWordLetterRef(word *WordRef) *WordLetterRef {
+func WordLetter(word *WordRef) *WordLetterRef {
 	return &WordLetterRef{
 		LetterRef: LetterRef{
 			Pos:       word.Pos,
-			Crossword: word.Crossword,
+			crossword: word.crossword,
 		},
-		Word: word,
+		word: word,
 	}
 }
 
 func (l *WordLetterRef) Next() *WordLetterRef {
-	if l.Word.Dir == Horizontal {
-		if l.Pos+1 < l.Word.Pos+l.Word.Length {
+	if l.word.Dir == Horizontal {
+		if l.Pos+1 < l.word.Pos+l.word.Length {
 			return &WordLetterRef{
 				LetterRef: LetterRef{
 					Pos:       l.Pos + 1,
-					Crossword: l.Crossword,
+					crossword: l.crossword,
 				},
-				Word: l.Word,
+				word: l.word,
 			}
 		}
 		return nil
 	}
 
-	if l.Pos+l.Crossword.Width < l.Word.Pos+l.Word.Length*l.Crossword.Width {
+	if l.Pos+l.crossword.Width < l.word.Pos+l.word.Length*l.crossword.Width {
 		return &WordLetterRef{
 			LetterRef: LetterRef{
-				Pos:       l.Pos + l.Crossword.Width,
-				Crossword: l.Crossword,
+				Pos:       l.Pos + l.crossword.Width,
+				crossword: l.crossword,
 			},
-			Word: l.Word,
+			word: l.word,
 		}
 	}
 	return nil

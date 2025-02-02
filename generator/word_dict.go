@@ -8,9 +8,10 @@ import (
 )
 
 type WordDict struct {
-	AllWords      map[string]struct{}
-	LengthMapping map[int][]string
-	LetterMapping map[WordDictKey]map[string]struct{}
+	allWords  []string
+	wordSet   map[string]struct{}
+	lengthMap map[int][]int
+	letterMap map[WordDictKey]map[int]struct{}
 }
 
 type WordDictKey struct {
@@ -25,29 +26,32 @@ func NewWordDict(dictPath string) WordDict {
 	}
 	defer file.Close()
 
-	// iterate over the words from data/words.txt and build the dictionary
 	dict := WordDict{
-		AllWords:      map[string]struct{}{},
-		LengthMapping: map[int][]string{},
-		LetterMapping: map[WordDictKey]map[string]struct{}{},
+		allWords:  []string{},
+		wordSet:   map[string]struct{}{},
+		lengthMap: map[int][]int{},
+		letterMap: map[WordDictKey]map[int]struct{}{},
 	}
 
 	scanner := bufio.NewScanner(file)
+	wordIndex := 0
 	for scanner.Scan() {
 		word := scanner.Text()
-		dict.AllWords[word] = struct{}{}
-		dict.LengthMapping[len(word)] = append(dict.LengthMapping[len(word)], word)
+		dict.allWords = append(dict.allWords, word)
+		dict.wordSet[word] = struct{}{}
+		dict.lengthMap[len(word)] = append(dict.lengthMap[len(word)], wordIndex)
 		for i := 0; i < len(word); i++ {
 			key := WordDictKey{letter: word[i], pos: i}
-			if dict.LetterMapping[key] == nil {
-				dict.LetterMapping[key] = map[string]struct{}{}
+			if _, exists := dict.letterMap[key]; !exists {
+				dict.letterMap[key] = map[int]struct{}{}
 			}
-			dict.LetterMapping[key][word] = struct{}{}
+			dict.letterMap[key][wordIndex] = struct{}{}
 		}
+		wordIndex++
 	}
 
 	if err := scanner.Err(); err != nil {
-		panic(fmt.Sprintf("error reading words file: %s", err))
+		panic(fmt.Sprintf("error reading dictionary file: %s", err))
 	}
 
 	return dict
@@ -55,19 +59,19 @@ func NewWordDict(dictPath string) WordDict {
 }
 
 func (wd WordDict) Contains(word string) bool {
-	_, exists := wd.AllWords[word]
+	_, exists := wd.wordSet[word]
 	return exists
 }
 
-func (wd WordDict) Candidates(word []byte) []string {
-	candidates := make([]string, len(wd.LengthMapping[len(word)]))
-	copy(candidates, wd.LengthMapping[len(word)])
+func (wd WordDict) Candidates(word []byte) []int {
+	candidates := make([]int, len(wd.lengthMap[len(word)]))
+	copy(candidates, wd.lengthMap[len(word)])
 
 	for i, letter := range word {
 		if letter != 0 {
 			key := WordDictKey{letter: letter, pos: i}
-			currentSet := wd.LetterMapping[key]
-			candidates = slices.DeleteFunc(candidates, func(e string) bool {
+			currentSet := wd.letterMap[key]
+			candidates = slices.DeleteFunc(candidates, func(e int) bool {
 				_, exists := currentSet[e]
 				return !exists
 			})
