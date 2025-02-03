@@ -10,8 +10,8 @@ import (
 // starting with an empty crossword, try to fill the crossword word by word,
 // starting with the longest ones. if stuck or we ended up creating
 // non-existent words, backtrack and try again.
-func generateCrossword(ctx context.Context, columns, rows int, wordDict WordDict, solvedCrossword chan *Crossword) {
-	crossword := NewEmptyCrossword(columns, rows)
+func generateCrossword(ctx context.Context, rows, columns int, wordDict WordDict, solvedCrossword chan *Crossword) {
+	crossword := NewEmptyCrossword(rows, columns)
 	crawler := newCrosswordCrawler(crossword)
 
 	for {
@@ -82,7 +82,7 @@ func newCrosswordCrawler(c *Crossword) *crosswordCrawler {
 		words = append(words, *w)
 	}
 	sort.Slice(words, func(i, j int) bool {
-		return words[i].Length > words[j].Length
+		return words[i].length > words[j].length
 	})
 	return &crosswordCrawler{
 		words:            words,

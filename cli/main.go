@@ -25,8 +25,8 @@ type ParseResult struct {
 }
 
 func parseArguments() (*ParseResult, error) {
-	columns := flag.Int("columns", 13, "number of columns in the crossword (valid values: [2, 13])")
 	rows := flag.Int("rows", 13, "number of rows in the crossword (valid values: [2, 13])")
+	columns := flag.Int("columns", 13, "number of columns in the crossword (valid values: [2, 13])")
 	concurrency := flag.Int("concurrency", 100, "number of goroutines to use (valid values: [1, 10000])")
 	dictionaryPath := flag.String("dictionaryPath", "data/words.txt", "path to the dictionary file with the words to be used to fill the crossword")
 	isCompact := flag.Bool("compact", false, "prints each letter using one character")
@@ -46,17 +46,17 @@ func parseArguments() (*ParseResult, error) {
 		return nil, fmt.Errorf("dictionary file not found: %s", *dictionaryPath)
 	}
 
+	wordDict := generator.NewWordDict(*dictionaryPath)
+
 	formatter := format.StandardFormat
 	if *isCompact {
 		formatter = format.CompactFormat
 	}
 
-	wordDict := generator.NewWordDict(*dictionaryPath)
-
 	return &ParseResult{
 		config: generator.CrosswordConfig{
-			Columns:     *columns,
 			Rows:        *rows,
+			Columns:     *columns,
 			Concurrency: *concurrency,
 			WordDict:    wordDict,
 		},

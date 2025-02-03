@@ -1,20 +1,32 @@
 package generator
 
 type LetterRef struct {
-	Pos       int
+	pos       int
 	crossword *Crossword
 }
 
 func (l *LetterRef) GetValue() byte {
-	return l.crossword.data[l.Pos]
+	return l.crossword.data[l.pos]
 }
 
 func (l *LetterRef) SetValue(value byte) {
-	l.crossword.data[l.Pos] = value
+	l.crossword.data[l.pos] = value
 }
 
 func (l *LetterRef) IsEmpty() bool {
-	return l.crossword.data[l.Pos] == 0
+	return l.crossword.data[l.pos] == 0
+}
+
+func (l *LetterRef) IsBlank() bool {
+	return l.crossword.data[l.pos] == blank
+}
+
+func (l *LetterRef) Row() int {
+	return l.pos / l.crossword.columns
+}
+
+func (l *LetterRef) Column() int {
+	return l.pos % l.crossword.columns
 }
 
 type CrosswordLetterRef struct {
@@ -36,17 +48,17 @@ func CrosswordLetter(c *Crossword) *CrosswordLetterRef {
 func CrosswordLetterAt(c *Crossword, row, column int) *CrosswordLetterRef {
 	return &CrosswordLetterRef{
 		LetterRef: LetterRef{
-			Pos:       row*c.columns + column,
+			pos:       row*c.columns + column,
 			crossword: c,
 		},
 	}
 }
 
 func (l *CrosswordLetterRef) Next() *CrosswordLetterRef {
-	if l.Pos+1 < len(l.crossword.data) {
+	if l.pos+1 < len(l.crossword.data) {
 		return &CrosswordLetterRef{
 			LetterRef: LetterRef{
-				Pos:       l.Pos + 1,
+				pos:       l.pos + 1,
 				crossword: l.crossword,
 			},
 		}
@@ -62,7 +74,7 @@ type WordLetterRef struct {
 func WordLetter(word *WordRef) *WordLetterRef {
 	return &WordLetterRef{
 		LetterRef: LetterRef{
-			Pos:       word.Pos,
+			pos:       word.pos,
 			crossword: word.crossword,
 		},
 		word: word,
@@ -70,11 +82,11 @@ func WordLetter(word *WordRef) *WordLetterRef {
 }
 
 func (l *WordLetterRef) Next() *WordLetterRef {
-	if l.word.Dir == Horizontal {
-		if l.Pos+1 < l.word.Pos+l.word.Length {
+	if l.word.direction == horizontal {
+		if l.pos+1 < l.word.pos+l.word.length {
 			return &WordLetterRef{
 				LetterRef: LetterRef{
-					Pos:       l.Pos + 1,
+					pos:       l.pos + 1,
 					crossword: l.crossword,
 				},
 				word: l.word,
@@ -83,10 +95,10 @@ func (l *WordLetterRef) Next() *WordLetterRef {
 		return nil
 	}
 
-	if l.Pos+l.crossword.columns < l.word.Pos+l.word.Length*l.crossword.columns {
+	if l.pos+l.crossword.columns < l.word.pos+l.word.length*l.crossword.columns {
 		return &WordLetterRef{
 			LetterRef: LetterRef{
-				Pos:       l.Pos + l.crossword.columns,
+				pos:       l.pos + l.crossword.columns,
 				crossword: l.crossword,
 			},
 			word: l.word,

@@ -5,25 +5,78 @@ import (
 )
 
 type WordRef struct {
-	Pos    int
-	Length int
-	Dir    WordDirection
+	pos       int
+	length    int
+	direction wordDirection
 
 	crossword *Crossword
 }
 
-type WordDirection int
+type wordDirection int
 
 const (
-	Horizontal WordDirection = iota
-	Vertical
+	horizontal wordDirection = iota
+	vertical
 )
 
 func Word(c *Crossword) *WordRef {
-	return horizontalWord(0, c)
+	return rowWord(0, c).WordRef
 }
 
-func horizontalWord(pos int, c *Crossword) *WordRef {
+func (w *WordRef) Next() *WordRef {
+	if w.direction == horizontal {
+		rowWord := rowWord(w.pos, w.crossword)
+		next := rowWord.Next()
+		if next != nil {
+			return next.WordRef
+		}
+		return columnWord(0, w.crossword).WordRef
+	}
+	columnWord := columnWord(w.pos, w.crossword)
+	next := columnWord.Next()
+	if next != nil {
+		return next.WordRef
+	}
+	return nil
+}
+
+func (w *WordRef) GetValue() []byte {
+	word := []byte{}
+	for letter := WordLetter(w); letter != nil; letter = letter.Next() {
+		word = append(word, letter.GetValue())
+	}
+	return word
+}
+
+func (w *WordRef) SetValue(value []byte) {
+	if len(value) != w.length {
+		panic(fmt.Sprintf("expected length %d but got %d", w.length, len(value)))
+	}
+	word := WordLetter(w)
+	for index := range value {
+		word.SetValue(value[index])
+		word = word.Next()
+	}
+}
+
+func (w *WordRef) IsFilled() bool {
+	for letter := WordLetter(w); letter != nil; letter = letter.Next() {
+		if letter.IsEmpty() {
+			return false
+		}
+	}
+	return true
+}
+
+type RowWordRef struct {
+	*WordRef
+}
+
+func RowWord(c *Crossword) *RowWordRef {
+	return rowWord(0, c)
+}
+
+func rowWord(pos int, c *Crossword) *RowWordRef {
 	wordStart := -1
 	wordLength := 0
 	i := pos
@@ -35,11 +88,13 @@ func horizontalWord(pos int, c *Crossword) *WordRef {
 			wordLength++
 			if (i+1)%c.columns == 0 || c.data[i+1] == '.' {
 				if wordLength > 1 {
-					return &WordRef{
-						Pos:       wordStart,
-						Length:    wordLength,
-						Dir:       Horizontal,
-						crossword: c,
+					return &RowWordRef{
+						&WordRef{
+							pos:       wordStart,
+							length:    wordLength,
+							direction: horizontal,
+							crossword: c,
+						},
 					}
 				}
 				wordStart = -1
@@ -51,7 +106,23 @@ func horizontalWord(pos int, c *Crossword) *WordRef {
 	return nil
 }
 
-func verticalWord(pos int, c *Crossword) *WordRef {
+func (w *RowWordRef) Row() int {
+	return w.pos / w.crossword.columns
+}
+
+func (w *RowWordRef) Next() *RowWordRef {
+	return rowWord(w.pos+(w.length-1), w.crossword)
+}
+
+type ColumnWordRef struct {
+	*WordRef
+}
+
+func ColumnWord(c *Crossword) *ColumnWordRef {
+	return columnWord(0, c)
+}
+
+func columnWord(pos int, c *Crossword) *ColumnWordRef {
 	wordStart := -1
 	wordLength := 0
 	i := pos
@@ -63,11 +134,13 @@ func verticalWord(pos int, c *Crossword) *WordRef {
 			wordLength++
 			if i+c.columns >= len(c.data) || c.data[i+c.columns] == '.' {
 				if wordLength > 1 {
-					return &WordRef{
-						Pos:       wordStart,
-						Length:    wordLength,
-						Dir:       Vertical,
-						crossword: c,
+					return &ColumnWordRef{
+						&WordRef{
+							pos:       wordStart,
+							length:    wordLength,
+							direction: vertical,
+							crossword: c,
+						},
 					}
 				}
 				wordStart = -1
@@ -85,41 +158,10 @@ func verticalWord(pos int, c *Crossword) *WordRef {
 	return nil
 }
 
-func (w *WordRef) Next() *WordRef {
-	if w.Dir == Horizontal {
-		nextHorizontalWord := horizontalWord(w.Pos+(w.Length-1), w.crossword)
-		if nextHorizontalWord != nil {
-			return nextHorizontalWord
-		}
-		return verticalWord(0, w.crossword)
-	}
-	return verticalWord(w.Pos+(w.Length-1)*w.crossword.columns, w.crossword)
+func (w *ColumnWordRef) Column() int {
+	return w.pos % w.crossword.columns
 }
 
-func (w *WordRef) GetValue() []byte {
-	word := []byte{}
-	for letter := WordLetter(w); letter != nil; letter = letter.Next() {
-		word = append(word, letter.GetValue())
-	}
-	return word
-}
-
-func (w *WordRef) SetValue(value []byte) {
-	if len(value) != w.Length {
-		panic(fmt.Sprintf("expected length %d but got %d", w.Length, len(value)))
-	}
-	index := 0
-	for letter := WordLetter(w); letter != nil; letter = letter.Next() {
-		letter.SetValue(value[index])
-		index++
-	}
-}
-
-func (w *WordRef) IsFilled() bool {
-	for letter := WordLetter(w); letter != nil; letter = letter.Next() {
-		if letter.IsEmpty() {
-			return false
-		}
-	}
-	return true
+func (w *ColumnWordRef) Next() *ColumnWordRef {
+	return columnWord(w.pos+(w.length-1)*w.crossword.columns, w.crossword)
 }

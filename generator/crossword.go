@@ -7,17 +7,17 @@ import (
 	"sync"
 )
 
-const Blank = '.'
+const blank = '.'
 
 type Crossword struct {
-	columns int
 	rows    int
+	columns int
 	data    []byte
 }
 
 type CrosswordConfig struct {
-	Columns     int
 	Rows        int
+	Columns     int
 	Concurrency int
 	WordDict    WordDict
 }
@@ -39,7 +39,7 @@ func NewCrossword(config CrosswordConfig) *Crossword {
 		go func() {
 			defer wg.Done()
 			defer cancel()
-			generateCrossword(ctx, config.Columns, config.Rows, config.WordDict, solvedCrossword)
+			generateCrossword(ctx, config.Rows, config.Columns, config.WordDict, solvedCrossword)
 		}()
 	}
 
@@ -48,12 +48,12 @@ func NewCrossword(config CrosswordConfig) *Crossword {
 	return <-solvedCrossword
 }
 
-func NewEmptyCrossword(columns, rows int) *Crossword {
-	if columns < 1 {
-		panic(fmt.Sprintf("invalid columns: %d", columns))
-	}
+func NewEmptyCrossword(rows, columns int) *Crossword {
 	if rows < 1 {
 		panic(fmt.Sprintf("invalid rows: %d", rows))
+	}
+	if columns < 1 {
+		panic(fmt.Sprintf("invalid columns: %d", columns))
 	}
 
 	data := make([]byte, columns*rows)
@@ -62,16 +62,16 @@ func NewEmptyCrossword(columns, rows int) *Crossword {
 	for i := 0; i < rows; i++ {
 		for j := 0; j < columns; j++ {
 			if i%2 == 1 && (i+j)%2 == 0 {
-				data[i*columns+j] = Blank
+				data[i*columns+j] = blank
 			}
 			if i == 0 && j%2 == 0 && rand.Float64() < 0.75 {
-				data[j+rand.Intn(rows)*columns] = Blank
+				data[j+rand.Intn(rows)*columns] = blank
 			}
 		}
 
 		if i%2 == 0 && columns > 7 {
 			if rand.Float64() < 0.75 {
-				data[i*columns+rand.Intn(columns)] = Blank
+				data[i*columns+rand.Intn(columns)] = blank
 			}
 		}
 	}
@@ -79,21 +79,21 @@ func NewEmptyCrossword(columns, rows int) *Crossword {
 	// replace any single letter words with empty space
 	for y := 0; y < rows; y++ {
 		for x := 0; x < columns; x++ {
-			if data[y*columns+x] == Blank {
+			if data[y*columns+x] == blank {
 				continue
 			}
-			if (x == 0 || data[y*columns+x-1] == Blank) &&
-				(x == columns-1 || data[y*columns+x+1] == Blank) &&
-				(y == 0 || data[(y-1)*columns+x] == Blank) &&
-				(y == rows-1 || data[(y+1)*columns+x] == Blank) {
-				data[y*columns+x] = Blank
+			if (x == 0 || data[y*columns+x-1] == blank) &&
+				(x == columns-1 || data[y*columns+x+1] == blank) &&
+				(y == 0 || data[(y-1)*columns+x] == blank) &&
+				(y == rows-1 || data[(y+1)*columns+x] == blank) {
+				data[y*columns+x] = blank
 			}
 		}
 	}
 
 	return &Crossword{
-		columns: columns,
 		rows:    rows,
+		columns: columns,
 		data:    data,
 	}
 }
