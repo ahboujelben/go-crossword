@@ -30,7 +30,11 @@ func (w *WordRef) Next() *WordRef {
 		if next != nil {
 			return next.WordRef
 		}
-		return columnWord(0, w.crossword).WordRef
+		firstColumnWord := columnWord(0, w.crossword)
+		if firstColumnWord != nil {
+			return firstColumnWord.WordRef
+		}
+		return nil
 	}
 	columnWord := columnWord(w.pos, w.crossword)
 	next := columnWord.Next()

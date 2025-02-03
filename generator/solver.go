@@ -23,9 +23,13 @@ func generateCrossword(ctx context.Context, rows, columns int, wordDict WordDict
 		}
 
 		// if the whole crossword is filled then a solution has been found
-		if crossword.isFilled() {
-			solvedCrossword <- crossword
-			return
+		if crossword.IsFilled() {
+			select {
+			case solvedCrossword <- crossword:
+				return
+			default:
+				return
+			}
 		}
 
 		currentWord := crawler.currentWord()

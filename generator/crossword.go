@@ -110,7 +110,7 @@ func (c *Crossword) Rows() int {
 	return c.rows
 }
 
-func (c *Crossword) isFilled() bool {
+func (c *Crossword) IsFilled() bool {
 	for letter := CrosswordLetter(c); letter != nil; letter = letter.Next() {
 		if letter.IsEmpty() {
 			return false
