@@ -9,7 +9,7 @@ import (
 )
 
 func TestGenerateCrossword(t *testing.T) {
-	wordDict := generator.NewWordDict("../data/words.txt")
+	wordDict := generator.NewWordDict()
 	for rows := 3; rows <= 13; rows++ {
 		for columns := 3; columns <= 13; columns++ {
 			c := columns

@@ -1,11 +1,13 @@
 package generator
 
 import (
-	"bufio"
-	"fmt"
-	"os"
+	_ "embed"
 	"slices"
+	"strings"
 )
+
+//go:embed data/words.txt
+var words string
 
 type WordDict struct {
 	allWords  []string
@@ -19,13 +21,7 @@ type WordDictKey struct {
 	pos    int
 }
 
-func NewWordDict(dictPath string) WordDict {
-	file, err := os.Open(dictPath)
-	if err != nil {
-		panic(fmt.Sprintf("failed to open words file: %s", err))
-	}
-	defer file.Close()
-
+func NewWordDict() WordDict {
 	dict := WordDict{
 		allWords:  []string{},
 		wordSet:   map[string]struct{}{},
@@ -33,10 +29,7 @@ func NewWordDict(dictPath string) WordDict {
 		letterMap: map[WordDictKey]map[int]struct{}{},
 	}
 
-	scanner := bufio.NewScanner(file)
-	wordIndex := 0
-	for scanner.Scan() {
-		word := scanner.Text()
+	for wordIndex, word := range strings.Fields(words) {
 		dict.allWords = append(dict.allWords, word)
 		dict.wordSet[word] = struct{}{}
 		dict.lengthMap[len(word)] = append(dict.lengthMap[len(word)], wordIndex)
@@ -47,11 +40,6 @@ func NewWordDict(dictPath string) WordDict {
 			}
 			dict.letterMap[key][wordIndex] = struct{}{}
 		}
-		wordIndex++
-	}
-
-	if err := scanner.Err(); err != nil {
-		panic(fmt.Sprintf("error reading dictionary file: %s", err))
 	}
 
 	return dict
