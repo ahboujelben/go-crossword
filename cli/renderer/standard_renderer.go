@@ -1,53 +1,81 @@
-package format
+package renderer
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/ahboujelben/crossword/generator"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"golang.org/x/term"
 )
 
 var blackColor = lipgloss.Color("#000")
 var whiteColor = lipgloss.Color("#fff")
 
-func StandardFormat(c *generator.Crossword) {
+func getBorderTable() *table.Table {
 	borderColor := blackColor
 	if lipgloss.HasDarkBackground() {
 		borderColor = whiteColor
 	}
 
-	getBorderTable := func() *table.Table {
-		return table.New().
-			Border(lipgloss.RoundedBorder()).
-			BorderStyle(lipgloss.NewStyle().Foreground(borderColor))
-	}
+	return table.New().
+		Border(lipgloss.RoundedBorder()).
+		BorderStyle(lipgloss.NewStyle().Foreground(borderColor))
+}
 
-	getDescriptionTable := func(label string) *table.Table {
-		return getBorderTable().
-			Headers(label).
-			StyleFunc(func(row, col int) lipgloss.Style {
-				return lipgloss.NewStyle().Padding(0, 1)
-			})
-	}
+type StandardRenderer struct {
+}
 
+func NewStandardRenderer() StandardRenderer {
+	return StandardRenderer{}
+}
+
+func (f StandardRenderer) RenderCrosswordAndClues(c *generator.Crossword, clues map[string]string) string {
+	return lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		f.RenderCrossword(c),
+		f.RenderClues(c, clues),
+	)
+}
+
+func (f StandardRenderer) RenderCrossword(c *generator.Crossword) string {
 	crosswordGrid := getBorderTable().
 		BorderRow(true).
 		Data(newCrosswordCharmWrapper(c))
 
+	return crosswordGrid.Render()
+}
+
+func (f StandardRenderer) RenderClues(c *generator.Crossword, clues map[string]string) string {
+	termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		termWidth = 120
+	}
+	getDescriptionTable := func(label string) *table.Table {
+		return getBorderTable().
+			Headers(label).
+			StyleFunc(func(row, col int) lipgloss.Style {
+				s := lipgloss.NewStyle().Padding(0, 1)
+				if col == 1 {
+					s = s.Width(min((termWidth - 4*c.Columns() - 14), 80))
+				}
+				return s
+			})
+	}
+
 	rows := getDescriptionTable("Rows").
-		Data(newRowsDescriptionWrapper(c))
+		Data(newRowsDescriptionWrapper(c, clues))
 
 	columns := getDescriptionTable("Cols").
-		Data(newColumnsDescriptionWrapper(c))
+		Data(newColumnsDescriptionWrapper(c, clues))
 
-	fmt.Println(lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		crosswordGrid.Render(),
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
 		lipgloss.NewStyle().MarginLeft(2).Render(rows.Render()),
 		lipgloss.NewStyle().MarginLeft(2).Render(columns.Render()),
-	))
+	)
 }
 
 type crowssordCharmWrapper struct {
@@ -73,18 +101,16 @@ func (w *crowssordCharmWrapper) At(row, column int) string {
 }
 
 type rowsDescriptionWrapper struct {
-	*generator.Crossword
 	words [][]string
 }
 
-func newRowsDescriptionWrapper(c *generator.Crossword) *rowsDescriptionWrapper {
+func newRowsDescriptionWrapper(c *generator.Crossword, clues map[string]string) *rowsDescriptionWrapper {
 	words := [][]string{}
-	for word := range getFormattedRowWords(c) {
+	for word := range getRenderedRowLines(c, clues) {
 		words = append(words, word)
 	}
 	return &rowsDescriptionWrapper{
-		Crossword: c,
-		words:     words,
+		words: words,
 	}
 }
 
@@ -101,18 +127,16 @@ func (w *rowsDescriptionWrapper) At(row, column int) string {
 }
 
 type columnsDescriptionWrapper struct {
-	*generator.Crossword
 	words [][]string
 }
 
-func newColumnsDescriptionWrapper(c *generator.Crossword) *columnsDescriptionWrapper {
+func newColumnsDescriptionWrapper(c *generator.Crossword, clues map[string]string) *columnsDescriptionWrapper {
 	words := [][]string{}
-	for word := range getFormattedColumnWords(c) {
+	for word := range getRenderedColumnLines(c, clues) {
 		words = append(words, word)
 	}
 	return &columnsDescriptionWrapper{
-		Crossword: c,
-		words:     words,
+		words: words,
 	}
 }
 

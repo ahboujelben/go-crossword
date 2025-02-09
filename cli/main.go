@@ -5,7 +5,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/ahboujelben/crossword/cli/format"
+	"github.com/ahboujelben/crossword/cli/cluer"
+	"github.com/ahboujelben/crossword/cli/renderer"
 	"github.com/ahboujelben/crossword/generator"
 )
 
@@ -22,14 +23,15 @@ func main() {
 		Concurrency: parseResult.concurrency,
 		WordDict:    wordDict,
 	})
-	crossword.Print(parseResult.formatter)
+	clues := cluer.MakeClues(crossword)
+	fmt.Println(parseResult.renderer.RenderCrosswordAndClues(crossword, clues))
 }
 
 type ParseResult struct {
 	rows        int
 	columns     int
 	concurrency int
-	formatter   func(c *generator.Crossword)
+	renderer    renderer.Renderer
 }
 
 func parseArguments() (*ParseResult, error) {
@@ -49,16 +51,16 @@ func parseArguments() (*ParseResult, error) {
 		return nil, fmt.Errorf("invalid number of goroutines")
 	}
 
-	formatter := format.StandardFormat
+	var render renderer.Renderer = renderer.NewStandardRenderer()
 	if *isCompact {
-		formatter = format.CompactFormat
+		render = renderer.NewCompactRenderer()
 	}
 
 	return &ParseResult{
 		rows:        *rows,
 		columns:     *columns,
 		concurrency: *concurrency,
-		formatter:   formatter,
+		renderer:    render,
 	}, nil
 }
 
