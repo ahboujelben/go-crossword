@@ -7,7 +7,7 @@ import (
 	"github.com/ahboujelben/crossword/generator"
 )
 
-func getRenderedRowLines(c *generator.Crossword, clues map[string]string) chan []string {
+func getRenderedRowLines(c *generator.Crossword, clues map[string]string, solved bool) chan []string {
 	ch := make(chan []string)
 	go func() {
 		currentRow := 0
@@ -20,7 +20,9 @@ func getRenderedRowLines(c *generator.Crossword, clues map[string]string) chan [
 			}
 			rowLine := make([]string, 0, 2)
 			rowWord := string(word.GetValue())
-			rowLine = append(rowLine, rowWord)
+			if solved {
+				rowLine = append(rowLine, rowWord)
+			}
 			if clue, ok := clues[rowWord]; ok {
 				rowLine = append(rowLine, clue)
 			}
@@ -32,7 +34,8 @@ func getRenderedRowLines(c *generator.Crossword, clues map[string]string) chan [
 	}()
 	return ch
 }
-func getRenderedColumnLines(c *generator.Crossword, clues map[string]string) chan []string {
+
+func getRenderedColumnLines(c *generator.Crossword, clues map[string]string, solved bool) chan []string {
 	ch := make(chan []string)
 	go func() {
 		currentColumn := 0
@@ -45,7 +48,9 @@ func getRenderedColumnLines(c *generator.Crossword, clues map[string]string) cha
 			}
 			columnLine := make([]string, 0, 2)
 			columnWord := string(word.GetValue())
-			columnLine = append(columnLine, columnWord)
+			if solved {
+				columnLine = append(columnLine, columnWord)
+			}
 			if clue, ok := clues[columnWord]; ok {
 				columnLine = append(columnLine, clue)
 			}

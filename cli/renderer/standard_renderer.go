@@ -32,23 +32,23 @@ func NewStandardRenderer() StandardRenderer {
 	return StandardRenderer{}
 }
 
-func (f StandardRenderer) RenderCrosswordAndClues(c *generator.Crossword, clues map[string]string) string {
+func (f StandardRenderer) RenderCrosswordAndClues(c *generator.Crossword, clues map[string]string, solved bool) string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		f.RenderCrossword(c),
-		f.RenderClues(c, clues),
+		f.RenderCrossword(c, solved),
+		f.RenderClues(c, clues, solved),
 	)
 }
 
-func (f StandardRenderer) RenderCrossword(c *generator.Crossword) string {
+func (f StandardRenderer) RenderCrossword(c *generator.Crossword, solved bool) string {
 	crosswordGrid := getBorderTable().
 		BorderRow(true).
-		Data(newCrosswordCharmWrapper(c))
+		Data(newCrosswordCharmWrapper(c, solved))
 
 	return crosswordGrid.Render()
 }
 
-func (f StandardRenderer) RenderClues(c *generator.Crossword, clues map[string]string) string {
+func (f StandardRenderer) RenderClues(c *generator.Crossword, clues map[string]string, solved bool) string {
 	termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		termWidth = 120
@@ -66,10 +66,10 @@ func (f StandardRenderer) RenderClues(c *generator.Crossword, clues map[string]s
 	}
 
 	rows := getDescriptionTable("Rows").
-		Data(newRowsDescriptionWrapper(c, clues))
+		Data(newRowsDescriptionWrapper(c, clues, solved))
 
 	columns := getDescriptionTable("Cols").
-		Data(newColumnsDescriptionWrapper(c, clues))
+		Data(newColumnsDescriptionWrapper(c, clues, solved))
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -78,22 +78,24 @@ func (f StandardRenderer) RenderClues(c *generator.Crossword, clues map[string]s
 	)
 }
 
-type crowssordCharmWrapper struct {
+type crosswordCharmWrapper struct {
 	*generator.Crossword
+	solved bool
 }
 
-func newCrosswordCharmWrapper(c *generator.Crossword) *crowssordCharmWrapper {
-	return &crowssordCharmWrapper{
+func newCrosswordCharmWrapper(c *generator.Crossword, solved bool) *crosswordCharmWrapper {
+	return &crosswordCharmWrapper{
 		Crossword: c,
+		solved:    solved,
 	}
 }
 
-func (w *crowssordCharmWrapper) At(row, column int) string {
+func (w *crosswordCharmWrapper) At(row, column int) string {
 	letter := generator.CrosswordLetterAt(w.Crossword, row, column)
 	switch {
 	case letter.IsBlank():
 		return "▐█▌"
-	case letter.IsEmpty():
+	case letter.IsEmpty() || !w.solved:
 		return "   "
 	default:
 		return fmt.Sprintf(" %c ", letter.GetValue()+'A'-'a')
@@ -104,9 +106,9 @@ type rowsDescriptionWrapper struct {
 	words [][]string
 }
 
-func newRowsDescriptionWrapper(c *generator.Crossword, clues map[string]string) *rowsDescriptionWrapper {
+func newRowsDescriptionWrapper(c *generator.Crossword, clues map[string]string, solved bool) *rowsDescriptionWrapper {
 	words := [][]string{}
-	for word := range getRenderedRowLines(c, clues) {
+	for word := range getRenderedRowLines(c, clues, solved) {
 		words = append(words, word)
 	}
 	return &rowsDescriptionWrapper{
@@ -130,9 +132,9 @@ type columnsDescriptionWrapper struct {
 	words [][]string
 }
 
-func newColumnsDescriptionWrapper(c *generator.Crossword, clues map[string]string) *columnsDescriptionWrapper {
+func newColumnsDescriptionWrapper(c *generator.Crossword, clues map[string]string, solved bool) *columnsDescriptionWrapper {
 	words := [][]string{}
-	for word := range getRenderedColumnLines(c, clues) {
+	for word := range getRenderedColumnLines(c, clues, solved) {
 		words = append(words, word)
 	}
 	return &columnsDescriptionWrapper{

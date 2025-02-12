@@ -3,6 +3,7 @@ package cluer
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"sync"
@@ -22,11 +23,6 @@ type ollamaRequestOptions struct {
 	Seed int64 `json:"seed"`
 }
 
-var system = `
-You are a crossword clue generator. You will generate a single concise
-sentence for a given word. The crossword's difficulty should be normal.
-`
-
 type CluesResult struct {
 	Clues map[string]string
 	Seed  int64
@@ -39,31 +35,54 @@ func newCluesResult(clues map[string]string, seed int64) CluesResult {
 	}
 }
 
-func MakeClues(c *generator.Crossword, seed int64) CluesResult {
-	if seed == 0 {
-		seed = rand.Int63()
+type ClueDifficulty string
+
+const (
+	ClueDifficultyNormal  ClueDifficulty = "normal"
+	ClueDifficultyCryptic ClueDifficulty = "cryptic"
+)
+
+func getSystemPrompt(difficulty ClueDifficulty) string {
+	return fmt.Sprintf(`
+You are a crossword clue generator. You will generate a single concise
+sentence for a given word. The crossword's difficulty should be %s.
+`, difficulty)
+}
+
+type CluesConfig struct {
+	Seed        int64
+	Difficulty  ClueDifficulty
+	OllamaModel string
+	OllamaUrl   string
+}
+
+func NewClues(c *generator.Crossword, config CluesConfig) CluesResult {
+	if config.Seed == 0 {
+		config.Seed = rand.Int63()
 	}
+
 	clues := make(map[string]string)
 	mutex := sync.Mutex{}
+	wg := sync.WaitGroup{}
+
 	for word := generator.Word(c); word != nil; word = word.Next() {
-		wg := sync.WaitGroup{}
 		wg.Add(1)
 		go func(w string) {
 			defer wg.Done()
 			prompt := ollamaRequest{
-				Model:  "llama3.1:8b",
-				System: system,
-				Prompt: w,
+				Model:  config.OllamaModel,
+				System: getSystemPrompt(config.Difficulty),
+				Prompt: fmt.Sprintf("the word is: `%s`", w),
 				Stream: false,
 				Options: ollamaRequestOptions{
-					Seed: seed,
+					Seed: config.Seed,
 				},
 			}
 			jsonData, err := json.Marshal(prompt)
 			if err != nil {
 				return
 			}
-			resp, err := http.Post("http://localhost:11434/api/generate", "application/json", bytes.NewBuffer(jsonData))
+			resp, err := http.Post(fmt.Sprintf("%s/api/generate", config.OllamaUrl), "application/json", bytes.NewBuffer(jsonData))
 			if err != nil {
 				return
 			}
@@ -74,7 +93,6 @@ func MakeClues(c *generator.Crossword, seed int64) CluesResult {
 			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 				return
 			}
-			mutex.Lock()
 
 			// remove quotes if present
 			clue := result.Response
@@ -86,10 +104,12 @@ func MakeClues(c *generator.Crossword, seed int64) CluesResult {
 				clue = clue[:len(clue)-1]
 			}
 
+			mutex.Lock()
 			clues[w] = clue
 			mutex.Unlock()
 		}(string(word.GetValue()))
-		wg.Wait()
 	}
-	return newCluesResult(clues, seed)
+
+	wg.Wait()
+	return newCluesResult(clues, config.Seed)
 }

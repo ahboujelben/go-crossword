@@ -1,10 +1,8 @@
 package main
 
 import (
-	_ "embed"
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/ahboujelben/crossword/cli/cluer"
 	"github.com/ahboujelben/crossword/cli/renderer"
@@ -18,6 +16,8 @@ func main() {
 	}
 
 	wordDict := generator.NewWordDict()
+
+	fmt.Println("Generating crossword...")
 	crosswordResult := generator.NewCrossword(generator.CrosswordConfig{
 		Rows:     parseResult.rows,
 		Cols:     parseResult.cols,
@@ -25,43 +25,66 @@ func main() {
 		Threads:  parseResult.threads,
 		WordDict: wordDict,
 	})
-	cluesResult := cluer.MakeClues(crosswordResult.Crossword, parseResult.cluesSeed)
-	fmt.Println(parseResult.renderer.RenderCrosswordAndClues(crosswordResult.Crossword, cluesResult.Clues))
+
+	if parseResult.noClues {
+		fmt.Printf("%s\n", parseResult.renderer.RenderCrossword(crosswordResult.Crossword, true))
+		fmt.Printf("%-15s: %d\n", "Crossword seed", crosswordResult.Seed)
+		return
+	}
+
+	fmt.Println("Generating clues...")
+	cluesResult := cluer.NewClues(crosswordResult.Crossword, cluer.CluesConfig{
+		Seed:        parseResult.cluesSeed,
+		Difficulty:  parseResult.cluesDifficulty,
+		OllamaModel: parseResult.ollamaModel,
+		OllamaUrl:   parseResult.ollamaUrl,
+	})
+
+	fmt.Println()
 	fmt.Printf("%-15s: %d\n", "Crossword seed", crosswordResult.Seed)
 	fmt.Printf("%-15s: %d\n", "Clues seed", cluesResult.Seed)
+	println()
+
+	fmt.Println(parseResult.renderer.RenderCrosswordAndClues(crosswordResult.Crossword, cluesResult.Clues, parseResult.solved))
 }
 
 type ParseResult struct {
-	rows          int
-	cols          int
-	crosswordSeed int64
-	cluesSeed     int64
-	threads       int
-	renderer      renderer.Renderer
+	rows            int
+	cols            int
+	crosswordSeed   int64
+	noClues         bool
+	cluesDifficulty cluer.ClueDifficulty
+	solved          bool
+	cluesSeed       int64
+	ollamaModel     string
+	ollamaUrl       string
+	threads         int
+	renderer        renderer.Renderer
 }
 
 func parseArguments() (*ParseResult, error) {
 	rows := flag.Int("rows", 13, "number of rows in the crossword ([3, 15])")
 	cols := flag.Int("cols", 13, "number of columns in the crossword ([3, 15])")
-	crosswordSeed := flag.Int64("crossword-seed", 0, "seed for the crossword generation ([0, 2^63-1], 0 for random seed)")
+	crosswordSeed := flag.Int64("crossword-seed", 0, "seed for the crossword generation ([0, 2^63-1], 0 for a random seed)")
+	noClues := flag.Bool("no-clues", false, "generate only the crossword without the clues")
+	cryptic := flag.Bool("cryptic", false, "generate cryptic clues")
+	solved := flag.Bool("solved", false, "show the solved crossword")
 	cluesSeed := flag.Int64("clues-seed", 0, "seed for the clues generation ([0, 2^63-1], 0 for random seed)")
+	ollamaUrl := flag.String("ollama-url", "http://localhost:11434", "URL of the Ollama server")
+	ollamaModel := flag.String("ollama-model", "llama3.1:8b", "Ollama model to use")
 	threads := flag.Int("threads", 100, "number of goroutines to use (>= 1)")
 	compact := flag.Bool("compact", false, "compact rendering")
 
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "  -rows\n\t%s (default %d)\n", "number of rows in the crossword ([3, 15])", 13)
-		fmt.Fprintf(os.Stderr, "  -cols\n\t%s (default %d)\n", "number of columns in the crossword ([3, 15])", 13)
-		fmt.Fprintf(os.Stderr, "  -crossword-seed\n\t%s (default %d)\n", "seed for the crossword generation ([0, 2^63-1], 0 for random seed)", 0)
-		fmt.Fprintf(os.Stderr, "  -clues-seed\n\t%s (default %d)\n", "seed for the clues generation ([0, 2^63-1], 0 for random seed)", 0)
-		fmt.Fprintf(os.Stderr, "  -threads\n\t%s (default %d)\n", "number of goroutines to use (>= 1)", 100)
-		fmt.Fprintf(os.Stderr, "  -compact\n\t%s (default %s)\n", "compact rendering", "false")
-	}
 	flag.Parse()
 
 	if !isDimensionValid(*rows) || !isDimensionValid(*cols) {
 		flag.Usage()
 		return nil, fmt.Errorf("invalid dimensions")
+	}
+
+	cluesDifficulty := cluer.ClueDifficultyNormal
+	if *cryptic {
+		cluesDifficulty = cluer.ClueDifficultyCryptic
 	}
 
 	if !isSeedValid(*crosswordSeed) || !isSeedValid(*cluesSeed) {
@@ -80,12 +103,17 @@ func parseArguments() (*ParseResult, error) {
 	}
 
 	return &ParseResult{
-		rows:          *rows,
-		cols:          *cols,
-		crosswordSeed: *crosswordSeed,
-		cluesSeed:     *cluesSeed,
-		threads:       *threads,
-		renderer:      render,
+		rows:            *rows,
+		cols:            *cols,
+		solved:          *solved,
+		noClues:         *noClues,
+		crosswordSeed:   *crosswordSeed,
+		cluesSeed:       *cluesSeed,
+		cluesDifficulty: cluesDifficulty,
+		ollamaModel:     *ollamaModel,
+		ollamaUrl:       *ollamaUrl,
+		threads:         *threads,
+		renderer:        render,
 	}, nil
 }
 
