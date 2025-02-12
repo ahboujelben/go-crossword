@@ -16,15 +16,15 @@ func TestGenerateCrossword(t *testing.T) {
 			r := rows
 			t.Run(fmt.Sprintf("Rows=%d_Columns=%d", rows, columns), func(t *testing.T) {
 				t.Parallel()
-				crossword := generator.NewCrossword(generator.CrosswordConfig{
-					Rows:        r,
-					Columns:     c,
-					Concurrency: 100,
-					WordDict:    wordDict,
+				result := generator.NewCrossword(generator.CrosswordConfig{
+					Rows:     r,
+					Cols:     c,
+					Threads:  100,
+					WordDict: wordDict,
 				})
 
-				assert.True(t, crossword.IsFilled())
-				for word := generator.ColumnWord(crossword); word != nil; word = word.Next() {
+				assert.True(t, result.Crossword.IsFilled())
+				for word := generator.ColumnWord(result.Crossword); word != nil; word = word.Next() {
 					wordValue := string(word.GetValue())
 					assert.True(t, wordDict.Contains(wordValue))
 				}

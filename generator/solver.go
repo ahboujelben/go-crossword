@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"slices"
 	"sort"
@@ -10,8 +11,9 @@ import (
 // starting with an empty crossword, try to fill the crossword word by word,
 // starting with the longest ones. if stuck or we ended up creating
 // non-existent words, backtrack and try again.
-func generateCrossword(ctx context.Context, rows, columns int, wordDict WordDict, solvedCrossword chan *Crossword) {
-	crossword := NewEmptyCrossword(rows, columns)
+func generateCrossword(ctx context.Context, rows, columns int, seed int64, wordDict WordDict, solvedCrossword chan CrosswordResult) {
+	random := rand.New(rand.NewSource(seed))
+	crossword := newEmptyCrossword(rows, columns, random)
 	crawler := newCrosswordCrawler(crossword)
 
 	for {
@@ -25,7 +27,7 @@ func generateCrossword(ctx context.Context, rows, columns int, wordDict WordDict
 		// if the whole crossword is filled then a solution has been found
 		if crossword.IsFilled() {
 			select {
-			case solvedCrossword <- crossword:
+			case solvedCrossword <- newCrosswordResult(crossword, seed):
 				return
 			default:
 				return
@@ -58,11 +60,61 @@ func generateCrossword(ctx context.Context, rows, columns int, wordDict WordDict
 			continue
 		}
 
-		candidate := wordDict.allWords[candidates[rand.Intn(len(candidates))]]
+		candidate := wordDict.allWords[candidates[random.Intn(len(candidates))]]
 		crawler.pushToStack(currentWordValue)
 		currentWord.SetValue([]byte(candidate))
 		crawler.storeWord(candidate)
 		crawler.goToNextWord()
+	}
+}
+
+func newEmptyCrossword(rows, columns int, random *rand.Rand) *Crossword {
+	if rows < 1 {
+		panic(fmt.Sprintf("invalid rows: %d", rows))
+	}
+	if columns < 1 {
+		panic(fmt.Sprintf("invalid columns: %d", columns))
+	}
+
+	data := make([]byte, columns*rows)
+
+	// create blank squares based on specific conditions
+	for i := 0; i < rows; i++ {
+		for j := 0; j < columns; j++ {
+			if i%2 == 1 && (i+j)%2 == 0 {
+				data[i*columns+j] = blank
+			}
+			if i == 0 && j%2 == 0 && random.Float64() < 0.75 {
+				data[j+random.Intn(rows)*columns] = blank
+			}
+		}
+
+		if i%2 == 0 && columns > 7 {
+			if random.Float64() < 0.75 {
+				data[i*columns+random.Intn(columns)] = blank
+			}
+		}
+	}
+
+	// replace any single letter words with empty space
+	for y := 0; y < rows; y++ {
+		for x := 0; x < columns; x++ {
+			if data[y*columns+x] == blank {
+				continue
+			}
+			if (x == 0 || data[y*columns+x-1] == blank) &&
+				(x == columns-1 || data[y*columns+x+1] == blank) &&
+				(y == 0 || data[(y-1)*columns+x] == blank) &&
+				(y == rows-1 || data[(y+1)*columns+x] == blank) {
+				data[y*columns+x] = blank
+			}
+		}
+	}
+
+	return &Crossword{
+		rows:    rows,
+		columns: columns,
+		data:    data,
 	}
 }
 

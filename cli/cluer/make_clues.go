@@ -3,17 +3,23 @@ package cluer
 import (
 	"bytes"
 	"encoding/json"
+	"math/rand"
 	"net/http"
 	"sync"
 
 	"github.com/ahboujelben/crossword/generator"
 )
 
-type OllamaRequest struct {
-	Model  string `json:"model"`
-	System string `json:"system"`
-	Prompt string `json:"prompt"`
-	Stream bool   `json:"stream"`
+type ollamaRequest struct {
+	Model   string               `json:"model"`
+	System  string               `json:"system"`
+	Prompt  string               `json:"prompt"`
+	Stream  bool                 `json:"stream"`
+	Options ollamaRequestOptions `json:"options"`
+}
+
+type ollamaRequestOptions struct {
+	Seed int64 `json:"seed"`
 }
 
 var system = `
@@ -21,7 +27,22 @@ You are a crossword clue generator. You will generate a single concise
 sentence for a given word. The crossword's difficulty should be normal.
 `
 
-func MakeClues(c *generator.Crossword) map[string]string {
+type CluesResult struct {
+	Clues map[string]string
+	Seed  int64
+}
+
+func newCluesResult(clues map[string]string, seed int64) CluesResult {
+	return CluesResult{
+		Clues: clues,
+		Seed:  seed,
+	}
+}
+
+func MakeClues(c *generator.Crossword, seed int64) CluesResult {
+	if seed == 0 {
+		seed = rand.Int63()
+	}
 	clues := make(map[string]string)
 	mutex := sync.Mutex{}
 	for word := generator.Word(c); word != nil; word = word.Next() {
@@ -29,11 +50,14 @@ func MakeClues(c *generator.Crossword) map[string]string {
 		wg.Add(1)
 		go func(w string) {
 			defer wg.Done()
-			prompt := OllamaRequest{
+			prompt := ollamaRequest{
 				Model:  "llama3.1:8b",
 				System: system,
 				Prompt: w,
 				Stream: false,
+				Options: ollamaRequestOptions{
+					Seed: seed,
+				},
 			}
 			jsonData, err := json.Marshal(prompt)
 			if err != nil {
@@ -67,5 +91,5 @@ func MakeClues(c *generator.Crossword) map[string]string {
 		}(string(word.GetValue()))
 		wg.Wait()
 	}
-	return clues
+	return newCluesResult(clues, seed)
 }
