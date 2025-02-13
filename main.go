@@ -4,9 +4,9 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/ahboujelben/crossword/cli/cluer"
-	"github.com/ahboujelben/crossword/cli/renderer"
-	"github.com/ahboujelben/crossword/generator"
+	"github.com/ahboujelben/go-crossword/cluer"
+	"github.com/ahboujelben/go-crossword/generator"
+	"github.com/ahboujelben/go-crossword/renderer"
 )
 
 func main() {

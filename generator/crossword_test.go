@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ahboujelben/crossword/generator"
+	"github.com/ahboujelben/go-crossword/generator"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ahboujelben/crossword/generator"
+	"github.com/ahboujelben/go-crossword/generator"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"

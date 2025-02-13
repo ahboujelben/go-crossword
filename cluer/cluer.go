@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/ahboujelben/crossword/generator"
+	"github.com/ahboujelben/go-crossword/generator"
 )
 
 type ollamaRequest struct {
