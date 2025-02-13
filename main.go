@@ -12,6 +12,7 @@ import (
 func main() {
 	parseResult, err := parseArguments()
 	if err != nil {
+		fmt.Println(fmt.Errorf("Something is not right: %w", err))
 		return
 	}
 
@@ -26,7 +27,7 @@ func main() {
 		WordDict: wordDict,
 	})
 
-	if parseResult.noClues {
+	if parseResult.omitClues {
 		fmt.Printf("%s\n", parseResult.renderer.RenderCrossword(crosswordResult.Crossword, true))
 		fmt.Printf("%-15s: %d\n", "Crossword seed", crosswordResult.Seed)
 		return
@@ -52,7 +53,7 @@ type ParseResult struct {
 	rows            int
 	cols            int
 	crosswordSeed   int64
-	noClues         bool
+	omitClues       bool
 	cluesDifficulty cluer.ClueDifficulty
 	solved          bool
 	cluesSeed       int64
@@ -66,7 +67,7 @@ func parseArguments() (*ParseResult, error) {
 	rows := flag.Int("rows", 13, "number of rows in the crossword ([3, 15])")
 	cols := flag.Int("cols", 13, "number of columns in the crossword ([3, 15])")
 	crosswordSeed := flag.Int64("crossword-seed", 0, "seed for the crossword generation ([0, 2^63-1], 0 for a random seed)")
-	noClues := flag.Bool("no-clues", false, "generate only the crossword without the clues")
+	omitClues := flag.Bool("omit-clues", false, "generate only the crossword without the clues")
 	cryptic := flag.Bool("cryptic", false, "generate cryptic clues")
 	solved := flag.Bool("solved", false, "show the solved crossword")
 	cluesSeed := flag.Int64("clues-seed", 0, "seed for the clues generation ([0, 2^63-1], 0 for random seed)")
@@ -78,23 +79,26 @@ func parseArguments() (*ParseResult, error) {
 	flag.Parse()
 
 	if !isDimensionValid(*rows) || !isDimensionValid(*cols) {
-		flag.Usage()
 		return nil, fmt.Errorf("invalid dimensions")
+	}
+
+	if !*omitClues {
+		if err := cluer.CheckOllama(*ollamaUrl, *ollamaModel); err != nil {
+			return nil, err
+		}
+	}
+
+	if !isSeedValid(*crosswordSeed) || !isSeedValid(*cluesSeed) {
+		return nil, fmt.Errorf("invalid seed")
+	}
+
+	if *threads < 1 {
+		return nil, fmt.Errorf("invalid number of goroutines")
 	}
 
 	cluesDifficulty := cluer.ClueDifficultyNormal
 	if *cryptic {
 		cluesDifficulty = cluer.ClueDifficultyCryptic
-	}
-
-	if !isSeedValid(*crosswordSeed) || !isSeedValid(*cluesSeed) {
-		flag.Usage()
-		return nil, fmt.Errorf("invalid seed")
-	}
-
-	if *threads < 1 {
-		flag.Usage()
-		return nil, fmt.Errorf("invalid number of goroutines")
 	}
 
 	var render renderer.Renderer = renderer.NewStandardRenderer()
@@ -106,7 +110,7 @@ func parseArguments() (*ParseResult, error) {
 		rows:            *rows,
 		cols:            *cols,
 		solved:          *solved,
-		noClues:         *noClues,
+		omitClues:       *omitClues,
 		crosswordSeed:   *crosswordSeed,
 		cluesSeed:       *cluesSeed,
 		cluesDifficulty: cluesDifficulty,
