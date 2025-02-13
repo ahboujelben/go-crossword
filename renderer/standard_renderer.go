@@ -43,6 +43,13 @@ func (f StandardRenderer) RenderCrosswordAndClues(c *generator.Crossword, clues 
 func (f StandardRenderer) RenderCrossword(c *generator.Crossword, solved bool) string {
 	crosswordGrid := getBorderTable().
 		BorderRow(true).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			s := lipgloss.NewStyle()
+			if row == 0 || col == 0 {
+				s = s.Foreground(lipgloss.Color("#00ff00"))
+			}
+			return s
+		}).
 		Data(newCrosswordCharmWrapper(c, solved))
 
 	return crosswordGrid.Render()
@@ -58,8 +65,11 @@ func (f StandardRenderer) RenderClues(c *generator.Crossword, clues map[string]s
 			Headers(label).
 			StyleFunc(func(row, col int) lipgloss.Style {
 				s := lipgloss.NewStyle().Padding(0, 1)
+				if row >= 0 && col == 0 {
+					s = s.Foreground(lipgloss.Color("#00ff00"))
+				}
 				if col == 1 {
-					s = s.Width(min((termWidth - 4*c.Columns() - 14), 80))
+					s = s.Width(min((termWidth - 4*c.Columns() - 17), 80))
 				}
 				return s
 			})
@@ -90,8 +100,25 @@ func newCrosswordCharmWrapper(c *generator.Crossword, solved bool) *crosswordCha
 	}
 }
 
+func (w *crosswordCharmWrapper) Columns() int {
+	return w.Crossword.Columns() + 1
+}
+
+func (w *crosswordCharmWrapper) Rows() int {
+	return w.Crossword.Rows() + 1
+}
+
 func (w *crosswordCharmWrapper) At(row, column int) string {
-	letter := generator.CrosswordLetterAt(w.Crossword, row, column)
+	if row == 0 && column == 0 {
+		return "   "
+	}
+	if row == 0 {
+		return fmt.Sprintf(" %-2d", column)
+	}
+	if column == 0 {
+		return fmt.Sprintf(" %-2d", row)
+	}
+	letter := generator.CrosswordLetterAt(w.Crossword, row-1, column-1)
 	switch {
 	case letter.IsBlank():
 		return "▐█▌"
