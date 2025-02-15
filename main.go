@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ahboujelben/go-crossword/cluer"
+	"github.com/ahboujelben/go-crossword/dictionary"
 	"github.com/ahboujelben/go-crossword/generator"
 	"github.com/ahboujelben/go-crossword/renderer"
 )
@@ -16,61 +17,63 @@ func main() {
 		return
 	}
 
-	wordDict := generator.NewWordDict()
-
 	fmt.Println("Generating crossword...")
 	crosswordResult := generator.NewCrossword(generator.CrosswordConfig{
 		Rows:     parseResult.rows,
 		Cols:     parseResult.cols,
 		Seed:     parseResult.crosswordSeed,
 		Threads:  parseResult.threads,
-		WordDict: wordDict,
+		WordDict: dictionary.NewWordDictionary(),
 	})
 
-	if parseResult.omitClues {
-		fmt.Printf("%s\n", parseResult.renderer.RenderCrossword(crosswordResult.Crossword, true))
-		fmt.Printf("%-15s: %d\n", "Crossword seed", crosswordResult.Seed)
+	if !parseResult.withClues {
+		fmt.Printf("%s\n\n", parseResult.renderer.RenderCrossword(crosswordResult.Crossword, true))
+		fmt.Println("To generate clues for this crossword, run the previous command with these additional flags:")
+		fmt.Printf("  -with-clues -crossword-seed=%d\n\n", crosswordResult.Seed)
+		fmt.Printf("Run the program with -h for more information on how to configure Ollama url and model.\n")
 		return
 	}
 
-	fmt.Println("Generating clues...")
+	fmt.Print("Generating clues...\n\n")
 	cluesResult := cluer.NewClues(crosswordResult.Crossword, cluer.CluesConfig{
 		Seed:        parseResult.cluesSeed,
-		Difficulty:  parseResult.cluesDifficulty,
+		Cryptic:     parseResult.cryptic,
 		OllamaModel: parseResult.ollamaModel,
 		OllamaUrl:   parseResult.ollamaUrl,
 	})
 
+	fmt.Println(parseResult.renderer.RenderCrosswordAndClues(crosswordResult.Crossword, cluesResult.Clues, !parseResult.unsolved))
 	fmt.Println()
-	fmt.Printf("%-15s: %d\n", "Crossword seed", crosswordResult.Seed)
-	fmt.Printf("%-15s: %d\n", "Clues seed", cluesResult.Seed)
-	println()
-
-	fmt.Println(parseResult.renderer.RenderCrosswordAndClues(crosswordResult.Crossword, cluesResult.Clues, parseResult.solved))
+	if parseResult.unsolved {
+		fmt.Println("To reveal the solution for this crossword, run the previous command without the -unsolved flag and with these flags:")
+	} else {
+		fmt.Println("To display this crossword without the solution, run the previous command with the -unsolved flag and with these flags:")
+	}
+	fmt.Printf("  -crossword-seed=%d -clues-seed=%d\n\n", crosswordResult.Seed, cluesResult.Seed)
 }
 
 type ParseResult struct {
-	rows            int
-	cols            int
-	crosswordSeed   int64
-	omitClues       bool
-	cluesDifficulty cluer.ClueDifficulty
-	solved          bool
-	cluesSeed       int64
-	ollamaModel     string
-	ollamaUrl       string
-	threads         int
-	renderer        renderer.Renderer
+	rows          int
+	cols          int
+	crosswordSeed int64
+	withClues     bool
+	cluesSeed     int64
+	cryptic       bool
+	unsolved      bool
+	ollamaModel   string
+	ollamaUrl     string
+	threads       int
+	renderer      renderer.Renderer
 }
 
 func parseArguments() (*ParseResult, error) {
 	rows := flag.Int("rows", 13, "number of rows in the crossword ([3, 15])")
 	cols := flag.Int("cols", 13, "number of columns in the crossword ([3, 15])")
 	crosswordSeed := flag.Int64("crossword-seed", 0, "seed for the crossword generation ([0, 2^63-1], 0 for a random seed)")
-	omitClues := flag.Bool("omit-clues", false, "generate only the crossword without the clues")
-	cryptic := flag.Bool("cryptic", false, "generate cryptic clues")
-	solved := flag.Bool("solved", false, "show the solved crossword")
+	withClues := flag.Bool("with-clues", false, "generate clues using an Ollama model (requires a running Ollama server)")
 	cluesSeed := flag.Int64("clues-seed", 0, "seed for the clues generation ([0, 2^63-1], 0 for random seed)")
+	cryptic := flag.Bool("cryptic", false, "generate cryptic clues")
+	unsolved := flag.Bool("unsolved", false, "hide the crossword solution")
 	ollamaUrl := flag.String("ollama-url", "http://localhost:11434", "URL of the Ollama server")
 	ollamaModel := flag.String("ollama-model", "llama3.1:8b", "Ollama model to use")
 	threads := flag.Int("threads", 100, "number of goroutines to use (>= 1)")
@@ -78,27 +81,25 @@ func parseArguments() (*ParseResult, error) {
 
 	flag.Parse()
 
-	if !isDimensionValid(*rows) || !isDimensionValid(*cols) {
+	if !isSizeValid(*rows) || !isSizeValid(*cols) {
 		return nil, fmt.Errorf("invalid dimensions")
 	}
 
-	if !*omitClues {
-		if err := cluer.CheckOllama(*ollamaUrl, *ollamaModel); err != nil {
+	if !isSeedValid(*crosswordSeed) {
+		return nil, fmt.Errorf("invalid crossword seed")
+	}
+
+	if *withClues {
+		if err := cluer.CheckOllamaServer(*ollamaUrl, *ollamaModel); err != nil {
 			return nil, err
 		}
 	}
 
-	if !isSeedValid(*crosswordSeed) || !isSeedValid(*cluesSeed) {
-		return nil, fmt.Errorf("invalid seed")
+	if !isSeedValid(*cluesSeed) {
+		return nil, fmt.Errorf("invalid clues seed")
 	}
-
 	if *threads < 1 {
 		return nil, fmt.Errorf("invalid number of goroutines")
-	}
-
-	cluesDifficulty := cluer.ClueDifficultyNormal
-	if *cryptic {
-		cluesDifficulty = cluer.ClueDifficultyCryptic
 	}
 
 	var render renderer.Renderer = renderer.NewStandardRenderer()
@@ -107,17 +108,17 @@ func parseArguments() (*ParseResult, error) {
 	}
 
 	return &ParseResult{
-		rows:            *rows,
-		cols:            *cols,
-		solved:          *solved,
-		omitClues:       *omitClues,
-		crosswordSeed:   *crosswordSeed,
-		cluesSeed:       *cluesSeed,
-		cluesDifficulty: cluesDifficulty,
-		ollamaModel:     *ollamaModel,
-		ollamaUrl:       *ollamaUrl,
-		threads:         *threads,
-		renderer:        render,
+		rows:          *rows,
+		cols:          *cols,
+		unsolved:      *unsolved,
+		withClues:     *withClues,
+		crosswordSeed: *crosswordSeed,
+		cluesSeed:     *cluesSeed,
+		cryptic:       *cryptic,
+		ollamaModel:   *ollamaModel,
+		ollamaUrl:     *ollamaUrl,
+		threads:       *threads,
+		renderer:      render,
 	}, nil
 }
 
@@ -125,6 +126,6 @@ func isSeedValid(seed int64) bool {
 	return seed >= 0
 }
 
-func isDimensionValid(size int) bool {
+func isSizeValid(size int) bool {
 	return size >= 3 && size <= 15
 }

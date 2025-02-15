@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ahboujelben/go-crossword/dictionary"
 	"github.com/ahboujelben/go-crossword/generator"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerateCrossword(t *testing.T) {
-	wordDict := generator.NewWordDict()
+	wordDict := dictionary.NewWordDictionary()
 	for rows := 3; rows <= 13; rows++ {
 		for columns := 3; columns <= 13; columns++ {
 			c := columns

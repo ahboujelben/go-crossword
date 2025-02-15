@@ -24,13 +24,12 @@ func (f CompactRenderer) RenderCrossword(c *generator.Crossword, solved bool) st
 	for letter := range getFormattedLetters(c, solved) {
 		result += letter
 	}
-	result += "\n"
 
 	return result
 }
 
 func (f CompactRenderer) RenderClues(c *generator.Crossword, clues map[string]string, solved bool) string {
-	var result string
+	result := "\n\n"
 	result += "Rows:\n"
 	for word := range getRenderedRowLines(c, clues, solved) {
 		if solved {
@@ -65,7 +64,7 @@ func getFormattedLetters(c *generator.Crossword, solved bool) chan string {
 			default:
 				ch <- string(letter.GetValue()+'A'-'a') + " "
 			}
-			if letter.Column() == c.Columns()-1 {
+			if letter.Column() == c.Columns()-1 && letter.Row() != c.Rows()-1 {
 				ch <- "\n"
 			}
 		}

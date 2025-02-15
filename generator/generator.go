@@ -6,12 +6,14 @@ import (
 	"math/rand"
 	"slices"
 	"sort"
+
+	"github.com/ahboujelben/go-crossword/dictionary"
 )
 
 // starting with an empty crossword, try to fill the crossword word by word,
 // starting with the longest ones. if stuck or we ended up creating
 // non-existent words, backtrack and try again.
-func generateCrossword(ctx context.Context, rows, columns int, seed int64, wordDict WordDict, solvedCrossword chan CrosswordResult) {
+func generateCrossword(ctx context.Context, rows, columns int, seed int64, wordDict dictionary.WordDictionary, solvedCrossword chan CrosswordResult) {
 	random := rand.New(rand.NewSource(seed))
 	crossword := newEmptyCrossword(rows, columns, random)
 	crawler := newCrosswordCrawler(crossword)
@@ -51,7 +53,7 @@ func generateCrossword(ctx context.Context, rows, columns int, seed int64, wordD
 		candidates := wordDict.Candidates(currentWordValue)
 		// exclude words that are already in the crossword
 		candidates = slices.DeleteFunc(candidates, func(e int) bool {
-			_, exists := crawler.wordsSoFar[wordDict.allWords[e]]
+			_, exists := crawler.wordsSoFar[wordDict.AllWords[e]]
 			return exists
 		})
 
@@ -60,7 +62,7 @@ func generateCrossword(ctx context.Context, rows, columns int, seed int64, wordD
 			continue
 		}
 
-		candidate := wordDict.allWords[candidates[random.Intn(len(candidates))]]
+		candidate := wordDict.AllWords[candidates[random.Intn(len(candidates))]]
 		crawler.pushToStack(currentWordValue)
 		currentWord.SetValue([]byte(candidate))
 		crawler.storeWord(candidate)

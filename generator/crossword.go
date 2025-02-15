@@ -4,6 +4,8 @@ import (
 	"context"
 	"math/rand"
 	"sync"
+
+	"github.com/ahboujelben/go-crossword/dictionary"
 )
 
 const blank = '.'
@@ -18,7 +20,7 @@ type CrosswordConfig struct {
 	Rows     int
 	Cols     int
 	Threads  int
-	WordDict WordDict
+	WordDict dictionary.WordDictionary
 	Seed     int64
 }
 
