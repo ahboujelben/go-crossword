@@ -1,11 +1,11 @@
-package generator_test
+package crossword_test
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/ahboujelben/go-crossword/crossword"
 	"github.com/ahboujelben/go-crossword/dictionary"
-	"github.com/ahboujelben/go-crossword/generator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +17,7 @@ func TestGenerateCrossword(t *testing.T) {
 			r := rows
 			t.Run(fmt.Sprintf("Rows=%d_Columns=%d", rows, columns), func(t *testing.T) {
 				t.Parallel()
-				result := generator.NewCrossword(generator.CrosswordConfig{
+				result := crossword.NewCrossword(crossword.CrosswordConfig{
 					Rows:     r,
 					Cols:     c,
 					Threads:  100,
@@ -25,7 +25,7 @@ func TestGenerateCrossword(t *testing.T) {
 				})
 
 				assert.True(t, result.Crossword.IsFilled())
-				for word := generator.ColumnWord(result.Crossword); word != nil; word = word.Next() {
+				for word := crossword.ColumnWord(result.Crossword); word != nil; word = word.Next() {
 					wordValue := string(word.GetValue())
 					assert.True(t, wordDict.Contains(wordValue))
 				}

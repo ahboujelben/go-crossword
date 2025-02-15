@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ahboujelben/go-crossword/generator"
+	"github.com/ahboujelben/go-crossword/crossword"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
@@ -32,7 +32,7 @@ func NewStandardRenderer() StandardRenderer {
 	return StandardRenderer{}
 }
 
-func (f StandardRenderer) RenderCrosswordAndClues(c *generator.Crossword, clues map[string]string, solved bool) string {
+func (f StandardRenderer) RenderCrosswordAndClues(c *crossword.Crossword, clues map[string]string, solved bool) string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		f.RenderCrossword(c, solved),
@@ -40,7 +40,7 @@ func (f StandardRenderer) RenderCrosswordAndClues(c *generator.Crossword, clues 
 	)
 }
 
-func (f StandardRenderer) RenderCrossword(c *generator.Crossword, solved bool) string {
+func (f StandardRenderer) RenderCrossword(c *crossword.Crossword, solved bool) string {
 	crosswordGrid := getBorderTable().
 		BorderRow(true).
 		StyleFunc(func(row, col int) lipgloss.Style {
@@ -55,7 +55,7 @@ func (f StandardRenderer) RenderCrossword(c *generator.Crossword, solved bool) s
 	return crosswordGrid.Render()
 }
 
-func (f StandardRenderer) RenderClues(c *generator.Crossword, clues map[string]string, solved bool) string {
+func (f StandardRenderer) RenderClues(c *crossword.Crossword, clues map[string]string, solved bool) string {
 	termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		termWidth = 120
@@ -89,11 +89,11 @@ func (f StandardRenderer) RenderClues(c *generator.Crossword, clues map[string]s
 }
 
 type crosswordCharmWrapper struct {
-	*generator.Crossword
+	*crossword.Crossword
 	solved bool
 }
 
-func newCrosswordCharmWrapper(c *generator.Crossword, solved bool) *crosswordCharmWrapper {
+func newCrosswordCharmWrapper(c *crossword.Crossword, solved bool) *crosswordCharmWrapper {
 	return &crosswordCharmWrapper{
 		Crossword: c,
 		solved:    solved,
@@ -118,7 +118,7 @@ func (w *crosswordCharmWrapper) At(row, column int) string {
 	if column == 0 {
 		return fmt.Sprintf(" %-2d", row)
 	}
-	letter := generator.CrosswordLetterAt(w.Crossword, row-1, column-1)
+	letter := crossword.CrosswordLetterAt(w.Crossword, row-1, column-1)
 	switch {
 	case letter.IsBlank():
 		return "▐█▌"
@@ -133,7 +133,7 @@ type rowsDescriptionWrapper struct {
 	words [][]string
 }
 
-func newRowsDescriptionWrapper(c *generator.Crossword, clues map[string]string, solved bool) *rowsDescriptionWrapper {
+func newRowsDescriptionWrapper(c *crossword.Crossword, clues map[string]string, solved bool) *rowsDescriptionWrapper {
 	words := [][]string{}
 	for word := range getRenderedRowLines(c, clues, solved) {
 		words = append(words, word)
@@ -159,7 +159,7 @@ type columnsDescriptionWrapper struct {
 	words [][]string
 }
 
-func newColumnsDescriptionWrapper(c *generator.Crossword, clues map[string]string, solved bool) *columnsDescriptionWrapper {
+func newColumnsDescriptionWrapper(c *crossword.Crossword, clues map[string]string, solved bool) *columnsDescriptionWrapper {
 	words := [][]string{}
 	for word := range getRenderedColumnLines(c, clues, solved) {
 		words = append(words, word)

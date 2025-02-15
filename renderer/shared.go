@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ahboujelben/go-crossword/generator"
+	"github.com/ahboujelben/go-crossword/crossword"
 )
 
-func getRenderedRowLines(c *generator.Crossword, clues map[string]string, solved bool) chan []string {
+func getRenderedRowLines(c *crossword.Crossword, clues map[string]string, solved bool) chan []string {
 	ch := make(chan []string)
 	go func() {
 		currentRow := 0
 		currentWordInRow := 0
-		for word := generator.RowWord(c); word != nil; word = word.Next() {
+		for word := crossword.RowWord(c); word != nil; word = word.Next() {
 			row := word.Row()
 			if row != currentRow {
 				currentRow = row
@@ -35,12 +35,12 @@ func getRenderedRowLines(c *generator.Crossword, clues map[string]string, solved
 	return ch
 }
 
-func getRenderedColumnLines(c *generator.Crossword, clues map[string]string, solved bool) chan []string {
+func getRenderedColumnLines(c *crossword.Crossword, clues map[string]string, solved bool) chan []string {
 	ch := make(chan []string)
 	go func() {
 		currentColumn := 0
 		currentWordInColumn := 0
-		for word := generator.ColumnWord(c); word != nil; word = word.Next() {
+		for word := crossword.ColumnWord(c); word != nil; word = word.Next() {
 			column := word.Column()
 			if column != currentColumn {
 				currentColumn = column

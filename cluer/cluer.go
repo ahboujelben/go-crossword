@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/ahboujelben/go-crossword/generator"
+	"github.com/ahboujelben/go-crossword/crossword"
 )
 
 type CluesConfig struct {
@@ -23,7 +23,7 @@ type CluesResult struct {
 	Seed  int64
 }
 
-func NewClues(c *generator.Crossword, config CluesConfig) CluesResult {
+func NewClues(c *crossword.Crossword, config CluesConfig) CluesResult {
 	if config.Seed == 0 {
 		config.Seed = rand.Int63()
 	}
@@ -32,7 +32,7 @@ func NewClues(c *generator.Crossword, config CluesConfig) CluesResult {
 	mutex := sync.Mutex{}
 	wg := sync.WaitGroup{}
 
-	for word := generator.Word(c); word != nil; word = word.Next() {
+	for word := crossword.Word(c); word != nil; word = word.Next() {
 		wg.Add(1)
 		go func(w string) {
 			defer wg.Done()

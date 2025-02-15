@@ -1,9 +1,9 @@
 package renderer
 
-import "github.com/ahboujelben/go-crossword/generator"
+import "github.com/ahboujelben/go-crossword/crossword"
 
 type Renderer interface {
-	RenderCrosswordAndClues(c *generator.Crossword, clues map[string]string, solved bool) string
-	RenderCrossword(c *generator.Crossword, solved bool) string
-	RenderClues(c *generator.Crossword, clues map[string]string, solved bool) string
+	RenderCrosswordAndClues(c *crossword.Crossword, clues map[string]string, solved bool) string
+	RenderCrossword(c *crossword.Crossword, solved bool) string
+	RenderClues(c *crossword.Crossword, clues map[string]string, solved bool) string
 }

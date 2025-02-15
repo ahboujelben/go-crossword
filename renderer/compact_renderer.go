@@ -3,7 +3,7 @@ package renderer
 import (
 	"fmt"
 
-	"github.com/ahboujelben/go-crossword/generator"
+	"github.com/ahboujelben/go-crossword/crossword"
 )
 
 type CompactRenderer struct {
@@ -13,13 +13,13 @@ func NewCompactRenderer() CompactRenderer {
 	return CompactRenderer{}
 }
 
-func (f CompactRenderer) RenderCrosswordAndClues(c *generator.Crossword, clues map[string]string, solved bool) string {
+func (f CompactRenderer) RenderCrosswordAndClues(c *crossword.Crossword, clues map[string]string, solved bool) string {
 	result := f.RenderCrossword(c, solved)
 	result += f.RenderClues(c, clues, solved)
 	return result
 }
 
-func (f CompactRenderer) RenderCrossword(c *generator.Crossword, solved bool) string {
+func (f CompactRenderer) RenderCrossword(c *crossword.Crossword, solved bool) string {
 	var result string
 	for letter := range getFormattedLetters(c, solved) {
 		result += letter
@@ -28,7 +28,7 @@ func (f CompactRenderer) RenderCrossword(c *generator.Crossword, solved bool) st
 	return result
 }
 
-func (f CompactRenderer) RenderClues(c *generator.Crossword, clues map[string]string, solved bool) string {
+func (f CompactRenderer) RenderClues(c *crossword.Crossword, clues map[string]string, solved bool) string {
 	result := "\n\n"
 	result += "Rows:\n"
 	for word := range getRenderedRowLines(c, clues, solved) {
@@ -52,10 +52,10 @@ func (f CompactRenderer) RenderClues(c *generator.Crossword, clues map[string]st
 	return result
 }
 
-func getFormattedLetters(c *generator.Crossword, solved bool) chan string {
+func getFormattedLetters(c *crossword.Crossword, solved bool) chan string {
 	ch := make(chan string)
 	go func() {
-		for letter := generator.CrosswordLetter(c); letter != nil; letter = letter.Next() {
+		for letter := crossword.CrosswordLetter(c); letter != nil; letter = letter.Next() {
 			switch {
 			case letter.IsBlank():
 				ch <- "█ "

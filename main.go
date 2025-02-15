@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/ahboujelben/go-crossword/cluer"
+	"github.com/ahboujelben/go-crossword/crossword"
 	"github.com/ahboujelben/go-crossword/dictionary"
-	"github.com/ahboujelben/go-crossword/generator"
 	"github.com/ahboujelben/go-crossword/renderer"
 )
 
@@ -18,7 +18,7 @@ func main() {
 	}
 
 	fmt.Println("Generating crossword...")
-	crosswordResult := generator.NewCrossword(generator.CrosswordConfig{
+	crosswordResult := crossword.NewCrossword(crossword.CrosswordConfig{
 		Rows:     parseResult.rows,
 		Cols:     parseResult.cols,
 		Seed:     parseResult.crosswordSeed,

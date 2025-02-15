@@ -1,4 +1,4 @@
-package generator
+package crossword
 
 type LetterRef struct {
 	pos       int

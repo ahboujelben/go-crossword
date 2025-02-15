@@ -1,4 +1,4 @@
-package generator
+package crossword
 
 import (
 	"fmt"
