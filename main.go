@@ -27,10 +27,9 @@ func main() {
 	})
 
 	if !parseResult.withClues {
-		fmt.Printf("%s\n\n", parseResult.renderer.RenderCrossword(crosswordResult.Crossword, true))
-		fmt.Println("To generate clues for this crossword, run the previous command with these additional flags:")
-		fmt.Printf("  -with-clues -crossword-seed=%d\n\n", crosswordResult.Seed)
-		fmt.Printf("Run the program with -h for more information on how to configure Ollama url and model.\n")
+		fmt.Printf("\n%s\n\n", parseResult.renderer.RenderCrossword(crosswordResult.Crossword, true))
+		fmt.Println("To generate clues for this crossword, run the previous command with these flags:")
+		fmt.Printf("  -with-clues -crossword-seed=%d\n", crosswordResult.Seed)
 		return
 	}
 
