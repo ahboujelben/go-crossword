@@ -54,7 +54,7 @@ func NewCrossword(config CrosswordConfig) CrosswordResult {
 	// tried. To speed up the process, we run multiple goroutines to generate
 	// crosswords and return the first one that is solved. This typically takes
 	// less than a second to generate a 13x13 crossword.
-	for i := 0; i < config.Threads; i++ {
+	for range config.Threads {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

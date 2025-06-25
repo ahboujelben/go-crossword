@@ -33,7 +33,7 @@ func NewWordDictionary() WordDictionary {
 		dict.AllWords = append(dict.AllWords, word)
 		dict.wordSet[word] = struct{}{}
 		dict.lengthMap[len(word)] = append(dict.lengthMap[len(word)], wordIndex)
-		for i := 0; i < len(word); i++ {
+		for i := range len(word) {
 			key := wordDictionaryKey{letter: word[i], pos: i}
 			if _, exists := dict.letterMap[key]; !exists {
 				dict.letterMap[key] = map[int]struct{}{}

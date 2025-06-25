@@ -81,8 +81,8 @@ func newEmptyCrossword(rows, columns int, random *rand.Rand) *Crossword {
 	data := make([]byte, columns*rows)
 
 	// create blank squares based on specific conditions
-	for i := 0; i < rows; i++ {
-		for j := 0; j < columns; j++ {
+	for i := range rows {
+		for j := range columns {
 			if i%2 == 1 && (i+j)%2 == 0 {
 				data[i*columns+j] = blank
 			}
@@ -99,8 +99,8 @@ func newEmptyCrossword(rows, columns int, random *rand.Rand) *Crossword {
 	}
 
 	// replace any single letter words with empty space
-	for y := 0; y < rows; y++ {
-		for x := 0; x < columns; x++ {
+	for y := range rows {
+		for x := range columns {
 			if data[y*columns+x] == blank {
 				continue
 			}
@@ -173,7 +173,7 @@ func (c *crosswordCrawler) backtrack() {
 	if c.totalBacktracks%10 == 0 {
 		c.backtrackSteps += 3
 	}
-	for i := 0; i < c.backtrackSteps; i++ {
+	for range c.backtrackSteps {
 		prevWord := c.stack[len(c.stack)-1]
 		c.stack = c.stack[:len(c.stack)-1]
 		wordToBeDeleted := string(c.words[prevWord.index].GetValue())
