@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ahboujelben/go-crossword/crossword"
+	"github.com/ahboujelben/go-crossword/modules/crossword"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
@@ -86,6 +86,13 @@ func (f StandardRenderer) RenderClues(c *crossword.Crossword, clues map[string]s
 		lipgloss.NewStyle().MarginLeft(2).Render(rows.Render()),
 		lipgloss.NewStyle().MarginLeft(2).Render(columns.Render()),
 	)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 type crosswordCharmWrapper struct {

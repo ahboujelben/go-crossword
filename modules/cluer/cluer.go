@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/ahboujelben/go-crossword/crossword"
+	"github.com/ahboujelben/go-crossword/modules/crossword"
 )
 
 type CluesConfig struct {
@@ -91,9 +91,9 @@ func getSystemPrompt(cryptic bool) string {
 	}
 
 	return fmt.Sprintf(`
-You are a crossword clue generator. You will generate a single concise
-sentence for a given word. The crossword's difficulty should be %s.
-`, difficulty)
+You are a crossword clue generator. You will generate a single concise sentence
+for a given word. Do not mention anything about the crossword itself or your
+role. The crossword's difficulty should be %s.  `, difficulty)
 }
 
 type ollamaRequest struct {

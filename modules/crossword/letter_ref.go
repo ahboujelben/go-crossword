@@ -18,7 +18,7 @@ func (l *LetterRef) IsEmpty() bool {
 }
 
 func (l *LetterRef) IsBlank() bool {
-	return l.crossword.data[l.pos] == blank
+	return l.crossword.data[l.pos] == Blank
 }
 
 func (l *LetterRef) Row() int {

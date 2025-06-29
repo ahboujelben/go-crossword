@@ -5,10 +5,10 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/ahboujelben/go-crossword/dictionary"
+	"github.com/ahboujelben/go-crossword/modules/dictionary"
 )
 
-const blank = '.'
+const Blank = '.'
 
 type Crossword struct {
 	rows    int

@@ -3,7 +3,7 @@ package renderer
 import (
 	"fmt"
 
-	"github.com/ahboujelben/go-crossword/crossword"
+	"github.com/ahboujelben/go-crossword/modules/crossword"
 )
 
 type CompactRenderer struct {

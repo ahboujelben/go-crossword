@@ -72,6 +72,25 @@ func (w *WordRef) IsFilled() bool {
 	return true
 }
 
+func (w *WordRef) GetPos() int {
+	return w.pos
+}
+
+func (w *WordRef) GetLength() int {
+	return w.length
+}
+
+func (w *WordRef) GetDirection() wordDirection {
+	return w.direction
+}
+
+func (w wordDirection) String() string {
+	if w == horizontal {
+		return "horizontal"
+	}
+	return "vertical"
+}
+
 type RowWordRef struct {
 	*WordRef
 }

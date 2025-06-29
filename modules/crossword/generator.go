@@ -7,7 +7,7 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/ahboujelben/go-crossword/dictionary"
+	"github.com/ahboujelben/go-crossword/modules/dictionary"
 )
 
 // starting with an empty crossword, try to fill the crossword word by word,
@@ -84,16 +84,16 @@ func newEmptyCrossword(rows, columns int, random *rand.Rand) *Crossword {
 	for i := range rows {
 		for j := range columns {
 			if i%2 == 1 && (i+j)%2 == 0 {
-				data[i*columns+j] = blank
+				data[i*columns+j] = Blank
 			}
 			if i == 0 && j%2 == 0 && random.Float64() < 0.75 {
-				data[j+random.Intn(rows)*columns] = blank
+				data[j+random.Intn(rows)*columns] = Blank
 			}
 		}
 
 		if i%2 == 0 && columns > 7 {
 			if random.Float64() < 0.75 {
-				data[i*columns+random.Intn(columns)] = blank
+				data[i*columns+random.Intn(columns)] = Blank
 			}
 		}
 	}
@@ -101,14 +101,14 @@ func newEmptyCrossword(rows, columns int, random *rand.Rand) *Crossword {
 	// replace any single letter words with empty space
 	for y := range rows {
 		for x := range columns {
-			if data[y*columns+x] == blank {
+			if data[y*columns+x] == Blank {
 				continue
 			}
-			if (x == 0 || data[y*columns+x-1] == blank) &&
-				(x == columns-1 || data[y*columns+x+1] == blank) &&
-				(y == 0 || data[(y-1)*columns+x] == blank) &&
-				(y == rows-1 || data[(y+1)*columns+x] == blank) {
-				data[y*columns+x] = blank
+			if (x == 0 || data[y*columns+x-1] == Blank) &&
+				(x == columns-1 || data[y*columns+x+1] == Blank) &&
+				(y == 0 || data[(y-1)*columns+x] == Blank) &&
+				(y == rows-1 || data[(y+1)*columns+x] == Blank) {
+				data[y*columns+x] = Blank
 			}
 		}
 	}

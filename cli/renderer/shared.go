@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ahboujelben/go-crossword/crossword"
+	"github.com/ahboujelben/go-crossword/modules/crossword"
 )
 
 func getRenderedRowLines(c *crossword.Crossword, clues map[string]string, solved bool) chan []string {

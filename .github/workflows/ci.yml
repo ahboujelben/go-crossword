@@ -22,7 +22,13 @@ jobs:
           go-version: "1.24"
 
       - name: Install dependencies
-        run: go mod tidy
+        working-directory: .
+        run: go work sync
+
+      - name: Build CLI
+        working-directory: ./cli
+        run: go build -o ../go-crossword .
 
       - name: Run tests
-        run: go test ./...
+        working-directory: .
+        run: make test

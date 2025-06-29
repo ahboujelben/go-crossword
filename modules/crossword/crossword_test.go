@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ahboujelben/go-crossword/crossword"
-	"github.com/ahboujelben/go-crossword/dictionary"
+	"github.com/ahboujelben/go-crossword/modules/crossword"
+	"github.com/ahboujelben/go-crossword/modules/dictionary"
 	"github.com/stretchr/testify/assert"
 )
 
