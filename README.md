@@ -13,6 +13,7 @@ GoCrossword is a powerful crossword toolkit that creates engaging crossword puzz
 - 🎲 Create random or seeded crossword puzzles
 - 🤖 AI-powered clue generation with [Ollama](https://github.com/ollama/ollama)
 - 🖥️ CLI tool for quick puzzle creation
+- 🔌 MCP (Model Context Protocol) server for AI assistant integration
 - 🐳 Docker support for easy deployment
 
 ## 🚀 Quick Start
@@ -110,31 +111,22 @@ If a random unsolved crossword is generated, the solution can be shown by rerunn
 
 ![Solved crossword example](vhs/6-crossword-with-clues-unsolved-2.gif)
 
-## 🤖 Ollama Integration
+## 🔌 MCP Server
 
-GoCrossword uses [Ollama](https://github.com/ollama/ollama) to generate clever and engaging clues for your crosswords.
+The MCP server enables AI assistants to use go-crossword generation engine while delegating clue generation to the assistant itself.
 
-### Setup Ollama
-
-1. Install Ollama from [https://ollama.com/](https://ollama.com/)
-2. Pull the default model:
-
-   ```shell
-   ollama pull llama3:8b
-   ```
-
-3. Start the Ollama server:
-
-   ```shell
-   ollama serve
-   ```
-
-### Docker Setup
-
-You can run the CLI tool in Docker using:
+### Integration
 
 ```shell
-make docker-run-cli
+{
+  /// The name of your MCP server
+  "go-crossword": {
+    /// The command which runs the MCP server
+    "command": "docker",
+    /// The arguments to pass to the MCP server
+    "args": ["run","--rm","-i","ahboujelben/go-crossword-mcp"],
+  }
+}
 ```
 
 ## 🧠 How It Works
@@ -143,8 +135,8 @@ GoCrossword uses a sophisticated algorithm to generate crossword puzzles:
 
 1. **Grid Generation**: Creates a grid of the specified dimensions
 2. **Word Placement**: Places words from a dictionary into the grid, ensuring proper intersections
-3. **Clue Generation**: Uses Ollama's LLM capabilities to create engaging clues for each word
-4. **Rendering**: Outputs the crossword in text format for CLI display
+3. **Clue Generation**: Optionally uses Ollama's LLM capabilities to create engaging clues for each word when running as a CLI program or the AI agent mode when running as an MCP server
+4. **Rendering**: Outputs the crossword in polished text format for easy reading or printing
 
 ### Architecture Diagram
 
@@ -187,19 +179,9 @@ graph TB
 ```text
 go-crossword/
 ├── cli/           # Command-line interface
+├── mcp/           # MCP server for AI assistant integration
 ├── modules/       # Core modules (crossword, dictionary, clue generation)
 └── Makefile       # Build and run targets
-```
-
-### Available Make Commands
-
-```bash
-make build-cli                    # Build the CLI application
-make run-cli                      # Run the CLI application
-make test                         # Run tests
-make docker-build-cli             # Build CLI Docker image
-make docker-run-cli               # Run CLI Docker container
-make docker-compose-cli           # Run CLI with Docker Compose
 ```
 
 ## 📄 License

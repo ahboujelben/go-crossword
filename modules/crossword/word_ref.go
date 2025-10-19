@@ -133,6 +133,10 @@ func (w *RowWordRef) Row() int {
 	return w.pos / w.crossword.columns
 }
 
+func (w *RowWordRef) Column() int {
+	return w.pos % w.crossword.columns
+}
+
 func (w *RowWordRef) Next() *RowWordRef {
 	return rowWord(w.pos+(w.length-1), w.crossword)
 }
@@ -183,6 +187,10 @@ func columnWord(pos int, c *Crossword) *ColumnWordRef {
 
 func (w *ColumnWordRef) Column() int {
 	return w.pos % w.crossword.columns
+}
+
+func (w *ColumnWordRef) Row() int {
+	return w.pos / w.crossword.columns
 }
 
 func (w *ColumnWordRef) Next() *ColumnWordRef {
