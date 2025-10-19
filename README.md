@@ -1,8 +1,9 @@
 # 🎮 GoCrossword
 
 ![Status](https://img.shields.io/badge/Status-Active-success)
-![Go](https://img.shields.io/badge/Go-1.24%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
+![Go](https://img.shields.io/badge/Go-1.24%2B-blue)
+![Docker Hub](https://img.shields.io/badge/Docker%20Hub-ahboujelben/go--crossword--mcp-blue?logo=docker&link=https://hub.docker.com/r/ahboujelben/go-crossword-mcp)
 
 ## 🧩 Overview
 
@@ -191,3 +192,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🙌 Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
+
+---
+
+**Made with ❤️ by ahboujelben** | Powered by Go & MCP
