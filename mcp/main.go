@@ -22,13 +22,19 @@ type Output struct {
 	ColumnWords       []Word `json:"columnWords" jsonschema:"the list of column words in the solved crossword"`
 }
 
+type WordRef interface {
+	GetValue() []byte
+	Row() int
+	Column() int
+}
+
 type Word struct {
 	Value  string `json:"value"`
 	Row    int    `json:"row"`
 	Column int    `json:"column"`
 }
 
-func newRowWord(word *crossword.RowWordRef) Word {
+func newWord(word WordRef) Word {
 	return Word{
 		Value:  string(word.GetValue()),
 		Row:    word.Row() + 1,
@@ -36,15 +42,6 @@ func newRowWord(word *crossword.RowWordRef) Word {
 	}
 }
 
-func newColumnWord(word *crossword.ColumnWordRef) Word {
-	return Word{
-		Value:  string(word.GetValue()),
-		Row:    word.Row() + 1,
-		Column: word.Column() + 1,
-	}
-}
-
-// isSizeValid checks if a crossword size is valid
 func isSizeValid(size int) bool {
 	return size >= 3 && size <= 15
 }
@@ -85,12 +82,12 @@ func GenerateCrossword(ctx context.Context, req *mcp.CallToolRequest, input Inpu
 
 	rowWords := []Word{}
 	for word := crossword.RowWord(c); word != nil; word = word.Next() {
-		rowWords = append(rowWords, newRowWord(word))
+		rowWords = append(rowWords, newWord(word))
 	}
 
 	columnWords := []Word{}
 	for word := crossword.ColumnWord(c); word != nil; word = word.Next() {
-		columnWords = append(columnWords, newColumnWord(word))
+		columnWords = append(columnWords, newWord(word))
 	}
 
 	return nil,
