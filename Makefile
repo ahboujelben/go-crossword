@@ -60,19 +60,3 @@ docker-build-mcp:
 docker-run-mcp: docker-build-mcp
 	@echo "Running MCP Docker container..."
 	@docker run --rm -i $(MCP_NAME)
-
-# Docker compose targets
-.PHONY: docker-compose-up
-docker-compose-up:
-	@echo "Starting services with Docker Compose..."
-	@docker-compose up -d
-
-.PHONY: docker-compose-down
-docker-compose-down:
-	@echo "Stopping services with Docker Compose..."
-	@docker-compose down
-
-.PHONY: docker-compose-cli
-docker-compose-cli:
-	@echo "Running CLI with Docker Compose..."
-	@docker-compose --profile cli run --rm -T cli $(ARGS)

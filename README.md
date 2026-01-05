@@ -3,63 +3,50 @@
 ![Status](https://img.shields.io/badge/Status-Active-success)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Go](https://img.shields.io/badge/Go-1.24%2B-blue)
-![Docker Hub](https://img.shields.io/badge/Docker%20Hub-ahboujelben/go--crossword--mcp-blue?logo=docker&link=https://hub.docker.com/r/ahboujelben/go-crossword-mcp)
+![Docker Hub CLI](https://img.shields.io/badge/Docker%20Hub-ahboujelben/go--crossword--cli-blue?logo=docker&link=https://hub.docker.com/r/ahboujelben/go-crossword-cli)
+![Docker Hub MCP](https://img.shields.io/badge/Docker%20Hub-ahboujelben/go--crossword--mcp-blue?logo=docker&link=https://hub.docker.com/r/ahboujelben/go-crossword-mcp)
 
 ## 🧩 Overview
 
-GoCrossword is a powerful crossword toolkit that creates engaging crossword puzzles from scratch! The system fills an empty grid with words from a predefined dictionary and can generate clever clues using AI.
+GoCrossword is a powerful crossword toolkit that creates engaging crossword puzzles from scratch! The system fills an empty grid with words from a predefined dictionary.
 
 **✨ Features:**
 
 - 🎲 Create random or seeded crossword puzzles
-- 🤖 AI-powered clue generation with [Ollama](https://github.com/ollama/ollama)
 - 🖥️ CLI tool for quick puzzle creation
 - 🔌 MCP (Model Context Protocol) server for AI assistant integration
 - 🐳 Docker support for easy deployment
 
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- Go 1.24 or higher
-- [Ollama](https://github.com/ollama/ollama) running locally with `llama3:8b` model (for clue generation)
-
-### Installation
+**Prerequisites:** Docker
 
 ```shell
-# Clone the repository
-git clone https://github.com/ahboujelben/go-crossword.git
-cd go-crossword
-
-# Build the CLI tool
-make build-cli
-```
-
-## 💻 CLI Usage
-
-The CLI tool allows you to quickly generate crossword puzzles for printing or sharing.
-
-```shell
-# Run using the CLI executable
-./go-crossword-cli
-
-# Or use the Make target
-make run-cli
-
-# Docker Compose option (ollama running withing docker)
-make docker-compose-cli
-
-```shell
-### Docker Compose Examples
+# Generate a default 13x13 crossword
+docker run --rm ahboujelben/go-crossword-cli
 
 # Generate a custom size crossword
-make docker-compose-cli ARGS="-rows 10 -cols 10"
+docker run --rm ahboujelben/go-crossword-cli -rows=7 -cols=7
 
-# Generate a compact rendering
-make docker-compose-cli ARGS="-compact"
+# Generate with a specific seed
+docker run --rm ahboujelben/go-crossword-cli -rows=10 -cols=10 -seed=12345
+
+# Use compact rendering
+docker run --rm ahboujelben/go-crossword-cli -compact
 ```
 
-### CLI Options
+### Building from Source (Optional)
+
+If you prefer to build from source, you'll need Go 1.24+:
+
+```shell
+git clone https://github.com/ahboujelben/go-crossword.git
+cd go-crossword
+make build-cli
+./go-crossword-cli
+```
+
+## 💻 CLI Options
 
 ```shell
 Usage: go-crossword-cli [options]
@@ -67,54 +54,28 @@ Usage: go-crossword-cli [options]
 Options:
   -rows int            Number of rows in the crossword grid (default 13)
   -cols int            Number of columns in the crossword grid (default 13)
-  -crossword-seed int  Seed for crossword generation (default: random)
-  -clues-seed int      Seed for clue generation (default: random)
-  -unsolved            Display puzzle in unsolved mode
-  -cryptic             Generate more cryptic/challenging clues
-  -ollama-url string   URL of the Ollama server (default "http://localhost:11434")
-  -ollama-model string Model to use for generating clues (default "llama3:8b")
+  -seed int            Seed for crossword generation (default: random)
   -compact             Use a more compact rendering style
+  -threads int         Number of goroutines to use (default 100)
 ```
 
-### CLI Examples
+## 📸 Examples
 
-#### Generate a random 13x13 crossword grid
+### Generate a random 13x13 crossword grid
 
 ![Random crossword grid example](vhs/1-plain-crossword.gif)
 
-Note the seed printed at the end can be used to generate clues for that specific crossword.
-
-#### Generate a random crossword grid with custom dimensions
+### Generate a random crossword grid with custom dimensions
 
 ![Custom dimension crossword example](vhs/2-plain-crossword-custom-size.gif)
 
-#### Generate a crossword with clues in solved mode
+### Generate with compact rendering
 
-![Crossword with clues example](vhs/3-crossword-with-clues.gif)
-
-The example above shows how clues are generated for a specific seeded crossword. If the seed is omitted, a random crossword grid is created along with the clues.
-
-Note that the second seed `-clues-seed` allows recreating that crossword later with those exact clues.
-
-#### Cryptic clues
-
-By default, the clues should yield a crossword of normal/easy difficulty. Passing `-cryptic` will prompt the LLM model to come up with more cryptic clues.
-
-![Cryptic clues example](vhs/4-crossword-with-clues-cryptic.gif)
-
-#### Unsolved mode
-
-Passing `-unsolved` will hide the solution of the generated crossword. This can apply to previously generated crosswords (when the crossword/clues seed values are passed) or a new random one.
-
-![Unsolved crossword example](vhs/5-crossword-with-clues-unsolved.gif)
-
-If a random unsolved crossword is generated, the solution can be shown by rerunning the command with the printed seeds.
-
-![Solved crossword example](vhs/6-crossword-with-clues-unsolved-2.gif)
+![Compact rendering example](vhs/3-compact-rendering.gif)
 
 ## 🔌 MCP Server
 
-The MCP server enables AI assistants to use go-crossword generation engine while delegating clue generation to the assistant itself.
+The MCP server enables AI assistants to use the go-crossword generation engine. The AI assistant can then generate its own clues for the words.
 
 ### Integration
 
@@ -130,14 +91,15 @@ The MCP server enables AI assistants to use go-crossword generation engine while
 }
 ```
 
+![](vhs/mcp.mp4)
+
 ## 🧠 How It Works
 
 GoCrossword uses a sophisticated algorithm to generate crossword puzzles:
 
 1. **Grid Generation**: Creates a grid of the specified dimensions
 2. **Word Placement**: Places words from a dictionary into the grid, ensuring proper intersections
-3. **Clue Generation**: Optionally uses Ollama's LLM capabilities to create engaging clues for each word when running as a CLI program or the AI agent mode when running as an MCP server
-4. **Rendering**: Outputs the crossword in polished text format for easy reading or printing
+3. **Rendering**: Outputs the crossword in polished text format for easy reading or printing
 
 ### Architecture Diagram
 
@@ -151,25 +113,16 @@ graph TB
     subgraph "Core Modules"
         CW[Crossword Generator]
         DICT[Dictionary]
-        CLUE[Clue Generator]
-    end
-
-    subgraph "External Dependencies"
-        OLLAMA[Ollama LLM]
     end
 
     CLI --> CW
     CLI --> CR
     CW --> DICT
-    CW --> CLUE
-    CLUE --> OLLAMA
 
     classDef core fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef ext fill:#bbf,stroke:#333,stroke-width:2px;
     classDef app fill:#bfb,stroke:#333,stroke-width:2px;
 
-    class CW,DICT,CLUE core;
-    class OLLAMA ext;
+    class CW,DICT core;
     class CLI,CR app;
 ```
 
@@ -181,7 +134,7 @@ graph TB
 go-crossword/
 ├── cli/           # Command-line interface
 ├── mcp/           # MCP server for AI assistant integration
-├── modules/       # Core modules (crossword, dictionary, clue generation)
+├── modules/       # Core modules (crossword, dictionary)
 └── Makefile       # Build and run targets
 ```
 
@@ -195,4 +148,4 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ---
 
-**Made with ❤️ by ahboujelben** | Powered by Go & MCP
+**Made with ❤️ by ahboujelben** | Powered by Go

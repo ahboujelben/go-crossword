@@ -5,6 +5,6 @@ Set Height 560
 
 Source vhs/begin.tape
 
-Type "go run . -rows=7 -cols=7"
+Type "docker run --rm go-crossword-cli -rows=7 -cols=7"
 
 Source vhs/end.tape

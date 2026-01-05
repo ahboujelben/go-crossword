@@ -2,13 +2,11 @@ package renderer
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/ahboujelben/go-crossword/modules/crossword"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"golang.org/x/term"
 )
 
 var blackColor = lipgloss.Color("#000")
@@ -32,14 +30,6 @@ func NewStandardRenderer() StandardRenderer {
 	return StandardRenderer{}
 }
 
-func (f StandardRenderer) RenderCrosswordAndClues(c *crossword.Crossword, clues map[string]string, solved bool) string {
-	return lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		f.RenderCrossword(c, solved),
-		f.RenderClues(c, clues, solved),
-	)
-}
-
 func (f StandardRenderer) RenderCrossword(c *crossword.Crossword, solved bool) string {
 	crosswordGrid := getBorderTable().
 		BorderRow(true).
@@ -53,46 +43,6 @@ func (f StandardRenderer) RenderCrossword(c *crossword.Crossword, solved bool) s
 		Data(newCrosswordCharmWrapper(c, solved))
 
 	return crosswordGrid.Render()
-}
-
-func (f StandardRenderer) RenderClues(c *crossword.Crossword, clues map[string]string, solved bool) string {
-	termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
-	if err != nil {
-		termWidth = 120
-	}
-	getDescriptionTable := func(label string) *table.Table {
-		return getBorderTable().
-			Headers(label).
-			StyleFunc(func(row, col int) lipgloss.Style {
-				s := lipgloss.NewStyle().Padding(0, 1)
-				if row >= 0 && col == 0 {
-					s = s.Foreground(lipgloss.Color("#00ff00"))
-				}
-				if col == 1 {
-					s = s.Width(min((termWidth - 4*c.Columns() - 17), 80))
-				}
-				return s
-			})
-	}
-
-	rows := getDescriptionTable("Rows").
-		Data(newRowsDescriptionWrapper(c, clues, solved))
-
-	columns := getDescriptionTable("Cols").
-		Data(newColumnsDescriptionWrapper(c, clues, solved))
-
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		lipgloss.NewStyle().MarginLeft(2).Render(rows.Render()),
-		lipgloss.NewStyle().MarginLeft(2).Render(columns.Render()),
-	)
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 type crosswordCharmWrapper struct {
@@ -134,56 +84,4 @@ func (w *crosswordCharmWrapper) At(row, column int) string {
 	default:
 		return fmt.Sprintf(" %c ", letter.GetValue()+'A'-'a')
 	}
-}
-
-type rowsDescriptionWrapper struct {
-	words [][]string
-}
-
-func newRowsDescriptionWrapper(c *crossword.Crossword, clues map[string]string, solved bool) *rowsDescriptionWrapper {
-	words := [][]string{}
-	for word := range getRenderedRowLines(c, clues, solved) {
-		words = append(words, word)
-	}
-	return &rowsDescriptionWrapper{
-		words: words,
-	}
-}
-
-func (w *rowsDescriptionWrapper) Columns() int {
-	return 2
-}
-
-func (w *rowsDescriptionWrapper) Rows() int {
-	return len(w.words)
-}
-
-func (w *rowsDescriptionWrapper) At(row, column int) string {
-	return w.words[row][column]
-}
-
-type columnsDescriptionWrapper struct {
-	words [][]string
-}
-
-func newColumnsDescriptionWrapper(c *crossword.Crossword, clues map[string]string, solved bool) *columnsDescriptionWrapper {
-	words := [][]string{}
-	for word := range getRenderedColumnLines(c, clues, solved) {
-		words = append(words, word)
-	}
-	return &columnsDescriptionWrapper{
-		words: words,
-	}
-}
-
-func (w *columnsDescriptionWrapper) Columns() int {
-	return 2
-}
-
-func (w *columnsDescriptionWrapper) Rows() int {
-	return len(w.words)
-}
-
-func (w *columnsDescriptionWrapper) At(row, column int) string {
-	return w.words[row][column]
 }

@@ -5,7 +5,6 @@ go 1.24
 require (
 	github.com/ahboujelben/go-crossword/modules v0.0.0
 	github.com/charmbracelet/lipgloss v1.0.0
-	golang.org/x/term v0.29.0
 )
 
 require (

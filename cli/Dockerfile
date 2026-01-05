@@ -22,5 +22,8 @@ WORKDIR /app
 # Copy the binary from the build stage
 COPY --from=build /go-crossword-cli .
 
+# Force color output for lipgloss
+ENV CLICOLOR_FORCE=1
+
 # Set the entry point
 ENTRYPOINT ["/app/go-crossword-cli"]
