@@ -91,7 +91,7 @@ The MCP server enables AI assistants to use the go-crossword generation engine. 
 }
 ```
 
-![](vhs/mcp.mp4)
+https://github.com/user-attachments/assets/a052e609-3eb8-414e-947a-69d7e2915f44
 
 ## 🧠 How It Works
 
