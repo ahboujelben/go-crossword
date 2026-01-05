@@ -3,8 +3,8 @@
 ![Status](https://img.shields.io/badge/Status-Active-success)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Go](https://img.shields.io/badge/Go-1.24%2B-blue)
-![Docker Hub CLI](https://img.shields.io/badge/Docker%20Hub-ahboujelben/go--crossword--cli-blue?logo=docker&link=https://hub.docker.com/r/ahboujelben/go-crossword-cli)
-![Docker Hub MCP](https://img.shields.io/badge/Docker%20Hub-ahboujelben/go--crossword--mcp-blue?logo=docker&link=https://hub.docker.com/r/ahboujelben/go-crossword-mcp)
+[![Docker Hub CLI](https://img.shields.io/badge/Docker%20Hub-ahboujelben/go--crossword--cli-blue?logo=docker)](https://hub.docker.com/r/ahboujelben/go-crossword-cli)
+[![Docker Hub MCP](https://img.shields.io/badge/Docker%20Hub-ahboujelben/go--crossword--mcp-blue?logo=docker)](https://hub.docker.com/r/ahboujelben/go-crossword-mcp)
 
 ## 🧩 Overview
 
@@ -12,8 +12,7 @@ GoCrossword is a powerful crossword toolkit that creates engaging crossword puzz
 
 **✨ Features:**
 
-- 🎲 Create random or seeded crossword puzzles
-- 🖥️ CLI tool for quick puzzle creation
+- 🎲 Create random or seeded crossword grids with interesting words
 - 🔌 MCP (Model Context Protocol) server for AI assistant integration
 - 🐳 Docker support for easy deployment
 
@@ -110,6 +109,11 @@ graph TB
         CR[Crossword Renderer]
     end
 
+    subgraph "MCP Server"
+        MCP[MCP Server]
+        MCPH[MCP Handler]
+    end
+
     subgraph "Core Modules"
         CW[Crossword Generator]
         DICT[Dictionary]
@@ -117,13 +121,17 @@ graph TB
 
     CLI --> CW
     CLI --> CR
+    MCP --> MCPH
+    MCPH --> CW
     CW --> DICT
 
     classDef core fill:#f9f,stroke:#333,stroke-width:2px;
     classDef app fill:#bfb,stroke:#333,stroke-width:2px;
+    classDef mcp fill:#bbf,stroke:#333,stroke-width:2px;
 
     class CW,DICT core;
     class CLI,CR app;
+    class MCP,MCPH mcp;
 ```
 
 ## 🛠️ Development
